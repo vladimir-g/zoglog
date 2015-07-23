@@ -5,7 +5,7 @@
   :author "Your Name <your.name@example.com>"
   :license "Specify license here"
   :serial t
-  :depends-on (#:usocket)
+  :depends-on (#:usocket #:split-sequence)
   :components ((:file "package")
                (:file "zoglog")))
 

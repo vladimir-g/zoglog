@@ -1,5 +1,5 @@
 ;;;; package.lisp
 
 (defpackage #:zoglog
-  (:use #:cl))
+  (:use #:cl #:split-sequence))
 
