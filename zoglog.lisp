@@ -5,11 +5,13 @@
 ;;; "zoglog" goes here. Hacks and glory await!
 
 (defmacro send-cmd (socket tpl &rest args)
+  "Send IRC command through SOCKET."
   `(format (usocket:socket-stream ,socket)
            (concatenate 'string ,tpl "~C~C")
            ,@args #\return #\linefeed))
 
 (defun connect (server port nick channels)
+  "Connect to IRC server and return socket."
   (let ((irc-socket (usocket:socket-connect server port)))
     (send-cmd irc-socket "NICK ~a" nick)
     (send-cmd irc-socket "USER ~a ~:*~a ~:*~a :~:*~a" nick)
@@ -28,7 +30,34 @@
                            (cadr (split-sequence #\colon line :count 2)))))
     (send-cmd socket "PONG :~a" data)))
 
+(defun split-once (line seq)
+  "Split string LINE by sequence SEQ once."
+  (let ((pos (search seq line)))
+    (list (subseq line 0 pos) (subseq line (+ pos (length seq))))))
+
+(defun make-message (line)
+  "Create IRC message from received line."
+  (let ((prefix "")
+        (trailing '())
+        (s line)
+        (args '())
+        (command ""))
+    (if (eq (char s 0) #\colon)
+        (let ((splitted (split-once s " ")))
+          (setf s (cadr splitted))
+          (setf prefix (subseq (car splitted) 1))))
+    (if (search ":" s)
+        (let ((splitted (split-once s " :")))
+          (setf s (car splitted))
+          (setf trailing (cadr splitted))
+          (setf args (split-sequence #\space s))
+          (nconc args trailing))
+        (setf args (split-sequence #\space s)))
+    (setf command (pop args))
+    (list prefix command args)))
+
 (defun log-server (server port nick channels)
+  "Run logging loop for specified server."""
   (let ((sock (connect server port nick channels)))
     (do ((line
           (read-line (usocket:socket-stream sock) nil)
