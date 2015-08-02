@@ -41,7 +41,8 @@
   ((text :initarg :text :reader text)))
 
 (define-condition message-parse-error (error)
-  ((text :initarg :text :reader text)))
+  ((text :initarg :text :reader text)
+   (raw :initarg :raw :reader raw)))
 
 ;; IRC message classes
 
@@ -100,9 +101,11 @@
 
 (defmethod process ((msg numeric-message))
   (with-accessors ((code code) (args args)) msg
-    (when (= code 433)
+    (when (or (= code 433)              ;ERRNICKNAMEINUSE
+              (= code 441))             ;ERRNICKCOLLISION
       (error 'nickname-already-in-use
-             :text (format nil "~{~a~^ ~}" args)))))
+             :text (format nil "~{~a~^ ~}" args))))
+  (call-next-method))
 
 ;; Maybe made subclass with "message" contents?
 (defclass quit-message (irc-message)
@@ -221,35 +224,39 @@
 
 (defun parse-message (line)
   "Create IRC message from received line."
-  (let ((prefix "")
-        (s (string-right-trim '(#\newline #\return) line))
-        (args '())
-        (command ""))
-    (when (eq (char s 0) #\colon)
-        (let ((splitted (split-once s " ")))
-          (setf s (cadr splitted))
-          (setf prefix (subseq (car splitted) 1))))
-    (if (search ":" s)
-        (let ((splitted (split-once s " :")))
-          (setf s (car splitted))
-          (setf args (split-sequence #\space s))
-          (nconc args (cdr splitted)))
-        (setf args (split-sequence #\space s)))
-    (setf command (pop args))
-    (make-message prefix command args line)))
+  (handler-case
+      (let ((prefix "")
+            (s (string-right-trim '(#\newline #\return) line))
+            (args '())
+            (command ""))
+        (when (eq (char s 0) #\colon)
+          (let ((splitted (split-once s " ")))
+            (setf s (cadr splitted))
+            (setf prefix (subseq (car splitted) 1))))
+        (if (search ":" s)
+            (let ((splitted (split-once s " :")))
+              (setf s (car splitted))
+              (setf args (split-sequence #\space s))
+              (nconc args (cdr splitted)))
+            (setf args (split-sequence #\space s)))
+        (setf command (pop args))
+        (make-message prefix command args line))
+    (error (c) (error 'message-parse-error :text c :raw line))))
 
 ;; Server logging
 
 (defparameter *reconnect-timeout* 10)
-
 
 (defun log-server (server port nick channels)
   "Run logging loop for specified server."
   (handler-bind ((nickname-already-in-use
                   #'(lambda (c)
                       (declare (ignore c))
-                      (format t "Sucks, nick used~%")
-                      (invoke-restart 'change-nick))))
+                      (invoke-restart 'change-nick)))
+                 (message-parse-error
+                  #'(lambda (c)
+                      (format t "Parse error: ~a, line: ~a~%" c (raw c))
+                      (invoke-restart 'continue))))
     (loop do
          (let* ((socket (usocket:socket-connect server port))
                 (stream (usocket:socket-stream socket)))
