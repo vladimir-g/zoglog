@@ -30,7 +30,10 @@
 (defun split-once (line seq)
   "Split string LINE by sequence SEQ once."
   (let ((pos (search seq line)))
-    (list (subseq line 0 pos) (subseq line (+ pos (length seq))))))
+    (if pos
+        (list (subseq line 0 pos) (subseq line (+ pos (length seq))))
+        (list line))))
+    
 
 (defun numeric-p (string)
   "Check if string contains only digits."
@@ -68,7 +71,26 @@
     :initarg :date
     :initform (get-universal-time)
     :accessor date
-    :documentation "Message date in lisp universal date format")))
+    :documentation "Message date in lisp universal date format")
+   (nick
+    :initarg :nick
+    :initform nil
+    :accessor nick
+    :documentation "Sender nickname")
+   (host
+    :initarg :host
+    :initform nil
+    :accessor host
+    :documentation "User and host name parts of nickmask")))
+
+(defmethod initialize-instance :after ((msg irc-message) &key)
+  "Initialize base message, parse username and host."
+  (with-accessors ((prefix prefix) (nick nick) (host host)) msg
+    (let ((splitted (split-once prefix "!")))
+      (if (= (length splitted) 1)
+          (setf host (car splitted))
+          (setf nick (car splitted)
+                host (cadr splitted))))))
 
 ;; Pretty date formatting
 (defgeneric date-fmt (irc-message)
@@ -152,6 +174,8 @@
                    (message message)) msg
     (setf message (car args))))
 
+(defclass notice-message (privmsg-message) ())
+
 (defclass part-message (privmsg-message)
   ((channel
     :documentation "IRC channel which user leaves.")))
@@ -179,9 +203,10 @@
 (defmethod print-object ((msg privmsg-message) stream)
   "Print PRIVMSG object."
   (print-unreadable-object (msg stream :type t :identity t)
-    (format stream "~a: PREFIX: '~a' CHANNEL: '~a' MSG: '~a'"
+    (format stream "~a: NICK: '~a' HOST: '~a' CHANNEL: '~a' MSG: '~a'"
             (date-fmt msg)
-            (prefix msg)
+            (nick msg)
+            (host msg)
             (channel msg)
             (message msg))))
 
@@ -213,6 +238,8 @@
        (init-instance 'action-message))
       ;; PRIVMSG
       ((string= command "PRIVMSG") (init-instance 'privmsg-message))
+      ;; NOTICE
+      ((string= command "NOTICE") (init-instance 'notice-message))
       ;; JOIN
       ((string= command "JOIN") (init-instance 'join-message))
       ;; PART
