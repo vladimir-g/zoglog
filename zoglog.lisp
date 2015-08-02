@@ -50,7 +50,11 @@
 ;; IRC message classes
 
 (defclass irc-message ()
-  ((prefix
+  ((server
+    :initarg :server
+    :accessor server
+    :documentation "IRC server.")
+   (prefix
     :initarg :prefix
     :accessor prefix
     :documentation "IRC message prefix (first word).")
@@ -103,12 +107,23 @@
     (format nil "~4,'0d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d UTC"
             year month day hour min sec)))
 
-;; Main processing
+;; Process message and do some action
 (defgeneric process (irc-message)
   (:documentation  "Process received message."))
 
 (defmethod process ((msg irc-message))
   (format t "~a~%" msg))
+
+(defgeneric save-p (irc-message channels)
+  (:documentation  "Check if message must be saved."))
+
+(defmethod save-p ((msg irc-message) channels) nil)
+
+(defgeneric save (irc-message)
+  (:documentation  "Save message to database."))
+
+(defmethod save ((msg irc-message))
+  (format t "Saving ~a~%" msg))
 
 ;; Numeric response
 (defclass numeric-message (irc-message)
@@ -142,6 +157,8 @@
                    (message message)) msg
     (setf message (car args))))
 
+(defmethod save-p ((msg quit-message) channels) t)
+
 (defclass channel-message (irc-message)
   ((channel
     :initarg :channel
@@ -153,6 +170,10 @@
   (with-accessors ((args args)
                    (channel channel)) msg
     (setf channel (pop args))))
+
+(defmethod save-p ((msg channel-message) channels)
+  (when (find (string-left-trim "#" (channel msg)) channels :test #'equal)
+    t))
 
 (defclass join-message (channel-message)
   ((channel
@@ -231,10 +252,11 @@
 
 ;; Parsing and message creating functions
 
-(defun make-message (prefix command args raw)
+(defun make-message (prefix command args raw &optional server)
   "Create generic irc message object or it's subclass."
   (flet ((init-instance (type)
            (make-instance type
+                          :server server
                           :prefix prefix
                           :command command
                           :args args
@@ -259,7 +281,7 @@
       ;; Other
       (t (init-instance 'irc-message)))))
 
-(defun parse-message (line)
+(defun parse-message (line &optional server)
   "Create IRC message from received line."
   (handler-case
       (let ((prefix "")
@@ -277,7 +299,7 @@
               (nconc args (cdr splitted)))
             (setf args (split-sequence #\space s)))
         (setf command (pop args))
-        (make-message prefix command args line))
+        (make-message prefix command args line server))
     (error (c) (error 'message-parse-error :text c :raw line))))
 
 ;; Server logging
@@ -322,7 +344,9 @@
                             (send-pong stream line)
                             (restart-case
                                 (let ((message (parse-message line)))
-                                  (process message))
+                                  (process message)
+                                  (when (save-p message channels)
+                                      (save message)))
                               (continue () nil)
                               (change-nick ()
                                 (progn
