@@ -3,38 +3,29 @@
 (in-package #:zoglog)
 
 ;; Helper functions
-(defmacro send-cmd (socket tpl &rest args)
-  "Send IRC command through SOCKET."
+(defmacro send-cmd (stream tpl &rest args)
+  "Send IRC command through STREAM."
   `(progn
-     (format (usocket:socket-stream ,socket)
-              (concatenate 'string ,tpl "~C~C")
-              ,@args #\return #\linefeed)
-     (finish-output (usocket:socket-stream ,socket))))
+     (format ,stream
+             (concatenate 'string ,tpl "~C~C")
+             ,@args #\return #\linefeed)
+     (finish-output ,stream)))
 
-(defun set-nick (socket nick)
+(defun set-nick (stream nick)
   "Set user name for server."
-  (send-cmd socket "NICK ~a" nick)
-  (send-cmd socket "USER ~a ~:*~a ~:*~a :~:*~a" nick))
-
-(defun connect (server port nick channels)
-  "Connect to IRC server and return socket."
-  (let ((irc-socket (usocket:socket-connect server port)))
-    (set-nick irc-socket nick)
-    ;; (send-cmd irc-socket "NICK ~a" nick)
-    ;; (send-cmd irc-socket "USER ~a ~:*~a ~:*~a :~:*~a" nick)
-    (send-cmd irc-socket "JOIN ~{#~a~^,~}" channels)
-    irc-socket))
+  (send-cmd stream "NICK ~a" nick)
+  (send-cmd stream "USER ~a ~:*~a ~:*~a :~:*~a" nick))
 
 (defun string-prefix-p (string line)
   "Check if LINE starts with STRING."
   (let ((pos (search string line)))
     (and pos (= pos 0))))
 
-(defun send-pong (socket line)
-  "Send 'PONG' in answer to 'PING' line throuck SOCK."
+(defun send-pong (stream line)
+  "Send 'PONG' in answer to 'PING' line throuck STREAM."
   (let ((data (string-trim '(#\space #\return #\newline)
                            (cadr (split-sequence #\colon line :count 2)))))
-    (send-cmd socket "PONG :~a" data)))
+    (send-cmd stream "PONG :~a" data)))
 
 (defun split-once (line seq)
   "Split string LINE by sequence SEQ once."
@@ -47,6 +38,9 @@
 
 ;; Errors
 (define-condition nickname-already-in-use (error)
+  ((text :initarg :text :reader text)))
+
+(define-condition message-parse-error (error)
   ((text :initarg :text :reader text)))
 
 ;; IRC message classes
@@ -91,7 +85,7 @@
   (:documentation  "Process received message."))
 
 (defmethod process ((msg irc-message))
-  (format t "~a" msg))
+  (format t "~a~%" msg))
 
 ;; Numeric response
 (defclass numeric-message (irc-message)
@@ -246,25 +240,40 @@
 
 ;; Server logging
 
+(defparameter *reconnect-timeout* 10)
+
+
 (defun log-server (server port nick channels)
   "Run logging loop for specified server."
   (handler-bind ((nickname-already-in-use
                   #'(lambda (c)
                       (declare (ignore c))
+                      (format t "Sucks, nick used~%")
                       (invoke-restart 'change-nick))))
-    (let ((sock (connect server port nick channels)))
-      (do ((line
-            (read-line (usocket:socket-stream sock) nil)
-            (read-line (usocket:socket-stream sock) nil)))
-          ((not line))
-        (format t "Received: ~A~%" line)
-        (if (string-prefix-p "PING" line)
-            (send-pong sock line)
-            (restart-case
-                (let ((message (parse-message line)))
-                  (process message))
-              (continue () nil)
-              (change-nick ()
+    (loop do
+         (let* ((socket (usocket:socket-connect server port))
+                (stream (usocket:socket-stream socket)))
+           (unwind-protect
                 (progn
-                  (setf nick (concatenate 'string nick "-"))
-                  (set-nick sock nick)))))))))
+                  (set-nick stream nick)
+                  (send-cmd stream "JOIN ~{#~a~^,~}" channels)
+                  (do ((line
+                        (read-line stream nil)
+                        (read-line stream nil)))
+                      ((not line))
+                    (if (string-prefix-p "PING" line)
+                        (send-pong stream line)
+                        (restart-case
+                            (let ((message (parse-message line)))
+                              (process message))
+                          (continue () nil)
+                          (change-nick ()
+                            (progn
+                              (setf nick (concatenate 'string nick "-"))
+                              (set-nick stream nick)))))))
+             (close stream)
+             (usocket:socket-close socket))
+           ;; Do-loop ends when socket disconnected, reconnect after
+           ;; timeout
+           (format t "Reconnecting~%")
+           (sleep *reconnect-timeout*)))))
