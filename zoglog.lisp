@@ -200,6 +200,16 @@
             (command msg)
             (args msg))))
 
+(defmethod print-object ((msg channel-message) stream)
+  "Print channel-type object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: NICK: '~a' HOST: '~a' CHANNEL: '~a' ARGS: '~a'"
+            (date-fmt msg)
+            (nick msg)
+            (host msg)
+            (channel msg)
+            (args msg))))
+
 (defmethod print-object ((msg privmsg-message) stream)
   "Print PRIVMSG object."
   (print-unreadable-object (msg stream :type t :identity t)
@@ -296,31 +306,32 @@
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
                  (message-parse-error #'restart-message-parse-error)
                  (error #'restart-unknown-error))
-    (with-simple-restart (restart-loop "Restart logging loop")
-      (loop do
-           (let* ((socket (usocket:socket-connect server port))
-                  (stream (usocket:socket-stream socket)))
-             (unwind-protect
-                  (progn
-                    (set-nick stream nick)
-                    (send-cmd stream "JOIN ~{#~a~^,~}" channels)
-                    (do ((line
-                          (read-line stream nil)
-                          (read-line stream nil)))
-                        ((not line))
-                      (if (string-prefix-p "PING" line)
-                          (send-pong stream line)
-                          (restart-case
-                              (let ((message (parse-message line)))
-                                (process message))
-                            (continue () nil)
-                            (change-nick ()
-                              (progn
-                                (setf nick (concatenate 'string nick "-"))
-                                (set-nick stream nick)))))))
-               (close stream)
-               (usocket:socket-close socket))
-             ;; Do-loop ends when socket disconnected, reconnect after
-             ;; timeout
-             (format t "Reconnecting~%")
-             (sleep *reconnect-timeout*))))))
+    (loop do
+         (restart-case
+             (let* ((socket (usocket:socket-connect server port))
+                    (stream (usocket:socket-stream socket)))
+               (unwind-protect
+                    (progn
+                      (set-nick stream nick)
+                      (send-cmd stream "JOIN ~{#~a~^,~}" channels)
+                      (do ((line
+                            (read-line stream nil)
+                            (read-line stream nil)))
+                          ((not line))
+                        (if (string-prefix-p "PING" line)
+                            (send-pong stream line)
+                            (restart-case
+                                (let ((message (parse-message line)))
+                                  (process message))
+                              (continue () nil)
+                              (change-nick ()
+                                (progn
+                                  (setf nick (concatenate 'string nick "-"))
+                                  (set-nick stream nick)))))))
+                 (close stream)
+                 (usocket:socket-close socket))
+               ;; Do-loop ends when socket disconnected, reconnect after
+               ;; timeout
+               (format t "Reconnecting~%")
+               (sleep *reconnect-timeout*))
+           (restart-loop () nil)))))
