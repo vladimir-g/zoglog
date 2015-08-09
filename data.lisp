@@ -7,6 +7,12 @@
 (define-condition nickname-already-in-use (error)
   ((text :initarg :text :reader text)))
 
+(define-condition logger-was-kicked (error)
+  ((text :initarg :text :reader text)))
+
+(define-condition logger-was-banned (error)
+  ((text :initarg :text :reader text)))
+
 (define-condition message-parse-error (error)
   ((text :initarg :text :reader text)
    (raw :initarg :raw :reader raw)))
@@ -22,6 +28,10 @@
     :initarg :channels
     :accessor channels
     :documentation "Subscribed channels.")
+   (logger-nick
+    :initarg :logger-nick
+    :accessor logger-nick
+    :documentation "Logger user (this) nick.")
    (prefix
     :initarg :prefix
     :accessor prefix
@@ -106,10 +116,13 @@
 
 (defmethod process ((msg numeric-message))
   (with-accessors ((code code) (args args)) msg
-    (when (or (= code 433)              ;ERRNICKNAMEINUSE
-              (= code 441))             ;ERRNICKCOLLISION
-      (error 'nickname-already-in-use
-             :text (format nil "~{~a~^ ~}" args))))
+    (cond ((or (= code 433)              ;ERRNICKNAMEINUSE
+	       (= code 441))             ;ERRNICKCOLLISION
+	   (error 'nickname-already-in-use
+		  :text (format nil "~{~a~^ ~}" args)))
+	  ((= code 474)
+	   (error 'logger-was-banned
+		  :text (format nil "~{~a~^ ~}" args)))))
   (call-next-method))
 
 ;; Maybe made subclass with "message" contents?
@@ -170,6 +183,7 @@
   ((channel
     :documentation "IRC channel which user leaves.")))
 
+;; PRIVMSG ACTION
 (defclass action-message (privmsg-message)
   ((action
     :initarg :action
@@ -180,6 +194,34 @@
   "Initialize PRIVMSG action object, parse ACTION."
   (with-accessors ((message message) (action action)) msg
     (setf action (subseq (string-trim '(#\u001) message) 8))))
+
+;; KICK
+(defclass kick-message (channel-message)
+  ((channel
+    :documentation "IRC channel where user is kicked.")
+   (message
+    :initarg message
+    :documentation "Kick reason"
+    :accessor message)
+   (user
+    :initarg :user
+    :documentation "Who was kicked"
+    :accessor user)))
+
+(defmethod save-p ((msg kick-message)) t)
+
+(defmethod initialize-instance :after ((msg kick-message) &key)
+  "Initialize KICK object, parse username and message."
+  (with-accessors ((message message) (user user) (args args)) msg
+    (setf user (car args))
+    (setf message (format nil "~{~a~^ ~}" (cdr args)))))
+
+(defmethod process ((msg kick-message))
+  (with-accessors ((user user) (ch channel) (logger-nick logger-nick)) msg
+    (call-next-method)
+    (when (string= user logger-nick)
+      (error 'logger-was-kicked
+             :text ch))))
 
 (defmethod print-object ((msg irc-message) stream)
   "Print generic irc-message object."
@@ -201,7 +243,7 @@
             (args msg))))
 
 (defmethod print-object ((msg quit-message) stream)
-  "Print PRIVMSG object."
+  "Print QUIT object."
   (print-unreadable-object (msg stream :type t :identity t)
     (format stream "~a: NICK: '~a' HOST: '~a' CHANNELS: '~a' MSG: '~a'"
             (date-fmt msg)
@@ -228,3 +270,14 @@
             (prefix msg)
             (channel msg)
             (action msg))))
+
+(defmethod print-object ((msg kick-message) stream)
+  "Print channel-type object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: NICK: '~a' HOST: '~a' CHANNEL: '~a' USER: '~a'"
+            (date-fmt msg)
+            (nick msg)
+            (host msg)
+            (channel msg)
+            (user msg))))
+

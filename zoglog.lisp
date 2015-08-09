@@ -11,9 +11,19 @@
   (format t "Changing nick~%")
   (invoke-restart 'change-nick))
 
+(defun restart-kicked (c)
+  "Rejoin after kick."
+  (format t "Joining ~a after kick~%" c)
+  (invoke-restart 'join-after-kick (text c)))
+
 (defun restart-message-parse-error (c)
   "Invoke CONTINUE restart on message parsing error."
   (format t "Parse error: ~a, line: ~a~%" c (raw c))
+  (invoke-restart 'continue))
+
+(defun restart-banned (c)
+  "Do nothing when logger was banned."
+  (format t "Logger was banned: ~a~%" (text c))
   (invoke-restart 'continue))
 
 (defun restart-unknown-error (c)
@@ -25,7 +35,9 @@
   "Run logging loop for specified server."
   (update-db-channels server channels)
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
+		 (logger-was-kicked #'restart-kicked)
                  (message-parse-error #'restart-message-parse-error)
+		 (logger-was-banned #'restart-banned)
                  (error #'restart-unknown-error))
     (loop do
          (restart-case
@@ -44,11 +56,16 @@
                             (restart-case
                                 (let ((message (parse-message line
 							      channels
-							      server)))
+							      server
+							      nick)))
                                   (process message)
                                   (when (save-p message)
                                       (save message)))
                               (continue () nil)
+                              (join-after-kick (channel)
+				(progn
+				  (sleep 3)
+				  (send-cmd stream "JOIN ~a" channel)))
                               (change-nick ()
                                 (progn
                                   (setf nick (concatenate 'string nick "-"))

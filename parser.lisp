@@ -2,12 +2,13 @@
 
 (in-package #:zoglog)
 
-(defun make-message (prefix command args raw &optional channels server)
+(defun make-message (prefix command args raw &optional channels server nick)
   "Create generic irc message object or it's subclass."
   (flet ((init-instance (type)
            (make-instance type
                           :server server
 			  :channels channels
+			  :logger-nick nick
                           :prefix prefix
                           :command command
                           :args args
@@ -27,12 +28,14 @@
       ((string= command "JOIN") (init-instance 'join-message))
       ;; PART
       ((string= command "PART") (init-instance 'part-message))
-      ;; PART
+      ;; QUIT
       ((string= command "QUIT") (init-instance 'quit-message))
+      ;; KICK
+      ((string= command "KICK") (init-instance 'kick-message))
       ;; Other
       (t (init-instance 'irc-message)))))
 
-(defun parse-message (line &optional channels server)
+(defun parse-message (line &optional channels server nick)
   "Create IRC message from received line."
   (handler-case
       (let ((prefix "")
@@ -50,5 +53,5 @@
               (nconc args (cdr splitted)))
             (setf args (split-sequence #\space s)))
         (setf command (pop args))
-        (make-message prefix command args line channels server))
+        (make-message prefix command args line channels server nick))
     (error (c) (error 'message-parse-error :text c :raw line))))
