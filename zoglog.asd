@@ -7,5 +7,9 @@
   :serial t
   :depends-on (#:usocket #:split-sequence #:postmodern #:local-time)
   :components ((:file "package")
-               (:file "zoglog")))
+               (:file "utils")
+               (:file "data")
+               (:file "database")
+               (:file "parser")
+	       (:file "zoglog")))
 
