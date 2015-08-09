@@ -19,6 +19,7 @@
 
 ;; Classes
 
+;; Generic IRC message
 (defclass irc-message ()
   ((server
     :initarg :server
@@ -74,6 +75,15 @@
           (setf nick (car splitted)
                 host (cadr splitted))))))
 
+(defmethod print-object ((msg irc-message) stream)
+  "Print generic irc-message object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: PREFIX: '~a' CMD: '~a' ARGS: (~{~a~^ ~})"
+            (date-fmt msg)
+            (prefix msg)
+            (command msg)
+            (args msg))))
+
 ;; Pretty date formatting
 (defgeneric date-fmt (irc-message)
   (:documentation  "Format message date in UTC."))
@@ -104,6 +114,7 @@
   (format t "Saving ~a~%" msg))
 
 ;; Numeric response
+
 (defclass numeric-message (irc-message)
   ((code
     :initarg :code
@@ -125,6 +136,7 @@
 		  :text (format nil "~{~a~^ ~}" args)))))
   (call-next-method))
 
+;; QUIT message
 ;; Maybe made subclass with "message" contents?
 (defclass quit-message (irc-message)
   ((message
@@ -139,6 +151,18 @@
     (setf message (car args))))
 
 (defmethod save-p ((msg quit-message)) t)
+
+(defmethod print-object ((msg quit-message) stream)
+  "Print QUIT object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: NICK: '~a' HOST: '~a' CHANNELS: '~a' MSG: '~a'"
+            (date-fmt msg)
+            (nick msg)
+            (host msg)
+            (channels msg)
+            (message msg))))
+
+;; Generic message with channel argument
 
 (defclass channel-message (irc-message)
   ((channel
@@ -157,9 +181,23 @@
 	      (channels msg) :test #'equal)
     t))
 
+(defmethod print-object ((msg channel-message) stream)
+  "Print channel-type object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: NICK: '~a' HOST: '~a' CHANNEL: '~a' ARGS: '~a'"
+            (date-fmt msg)
+            (nick msg)
+            (host msg)
+            (channel msg)
+            (args msg))))
+
+;; JOIN message
+
 (defclass join-message (channel-message)
   ((channel
     :documentation "IRC channel which user joined.")))
+
+;; PRIVMSG message
 
 (defclass privmsg-message (channel-message)
   ((channel
@@ -177,7 +215,21 @@
                    (message message)) msg
     (setf message (car args))))
 
+(defmethod print-object ((msg privmsg-message) stream)
+  "Print PRIVMSG object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: NICK: '~a' HOST: '~a' CHANNEL: '~a' MSG: '~a'"
+            (date-fmt msg)
+            (nick msg)
+            (host msg)
+            (channel msg)
+            (message msg))))
+
+;; NOTICE message
+
 (defclass notice-message (privmsg-message) ())
+
+;; PART message
 
 (defclass part-message (privmsg-message)
   ((channel
@@ -195,7 +247,17 @@
   (with-accessors ((message message) (action action)) msg
     (setf action (subseq (string-trim '(#\u001) message) 8))))
 
-;; KICK
+(defmethod print-object ((msg action-message) stream)
+  "Print PRIVMSG ACTION object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: PREFIX: '~a' CHANNEL: '~a' ACTION: '~a'"
+            (date-fmt msg)
+            (prefix msg)
+            (channel msg)
+            (action msg))))
+
+;; KICK message
+
 (defclass kick-message (channel-message)
   ((channel
     :documentation "IRC channel where user is kicked.")
@@ -222,54 +284,6 @@
     (when (string= user logger-nick)
       (error 'logger-was-kicked
              :text ch))))
-
-(defmethod print-object ((msg irc-message) stream)
-  "Print generic irc-message object."
-  (print-unreadable-object (msg stream :type t :identity t)
-    (format stream "~a: PREFIX: '~a' CMD: '~a' ARGS: (~{~a~^ ~})"
-            (date-fmt msg)
-            (prefix msg)
-            (command msg)
-            (args msg))))
-
-(defmethod print-object ((msg channel-message) stream)
-  "Print channel-type object."
-  (print-unreadable-object (msg stream :type t :identity t)
-    (format stream "~a: NICK: '~a' HOST: '~a' CHANNEL: '~a' ARGS: '~a'"
-            (date-fmt msg)
-            (nick msg)
-            (host msg)
-            (channel msg)
-            (args msg))))
-
-(defmethod print-object ((msg quit-message) stream)
-  "Print QUIT object."
-  (print-unreadable-object (msg stream :type t :identity t)
-    (format stream "~a: NICK: '~a' HOST: '~a' CHANNELS: '~a' MSG: '~a'"
-            (date-fmt msg)
-            (nick msg)
-            (host msg)
-            (channels msg)
-            (message msg))))
-
-(defmethod print-object ((msg privmsg-message) stream)
-  "Print PRIVMSG object."
-  (print-unreadable-object (msg stream :type t :identity t)
-    (format stream "~a: NICK: '~a' HOST: '~a' CHANNEL: '~a' MSG: '~a'"
-            (date-fmt msg)
-            (nick msg)
-            (host msg)
-            (channel msg)
-            (message msg))))
-
-(defmethod print-object ((msg action-message) stream)
-  "Print PRIVMSG ACTION object."
-  (print-unreadable-object (msg stream :type t :identity t)
-    (format stream "~a: PREFIX: '~a' CHANNEL: '~a' ACTION: '~a'"
-            (date-fmt msg)
-            (prefix msg)
-            (channel msg)
-            (action msg))))
 
 (defmethod print-object ((msg kick-message) stream)
   "Print channel-type object."
