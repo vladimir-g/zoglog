@@ -11,7 +11,7 @@
   (format t "Changing nick~%")
   (invoke-restart 'change-nick))
 
-(defun restart-message-parse-error (c)a
+(defun restart-message-parse-error (c)
   "Invoke CONTINUE restart on message parsing error."
   (format t "Parse error: ~a, line: ~a~%" c (raw c))
   (invoke-restart 'continue))
@@ -45,7 +45,7 @@
 							      channels
 							      server)))
                                   (process message)
-                                  (when (save-p message channels)
+                                  (when (save-p message)
                                       (save message)))
                               (continue () nil)
                               (change-nick ()

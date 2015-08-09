@@ -82,10 +82,10 @@
 (defmethod process ((msg irc-message))
   (format t "~a~%" msg))
 
-(defgeneric save-p (irc-message channels)
+(defgeneric save-p (irc-message)
   (:documentation  "Check if message must be saved."))
 
-(defmethod save-p ((msg irc-message) channels) nil)
+(defmethod save-p ((msg irc-message)) nil)
 
 (defgeneric save (irc-message)
   (:documentation  "Save message to database."))
@@ -125,7 +125,7 @@
                    (message message)) msg
     (setf message (car args))))
 
-(defmethod save-p ((msg quit-message) channels) t)
+(defmethod save-p ((msg quit-message)) t)
 
 (defclass channel-message (irc-message)
   ((channel
@@ -139,8 +139,9 @@
                    (channel channel)) msg
     (setf channel (pop args))))
 
-(defmethod save-p ((msg channel-message) channels)
-  (when (find (string-left-trim "#" (channel msg)) channels :test #'equal)
+(defmethod save-p ((msg channel-message))
+  (when (find (string-left-trim "#" (channel msg))
+	      (channels msg) :test #'equal)
     t))
 
 (defclass join-message (channel-message)
