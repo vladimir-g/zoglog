@@ -21,7 +21,7 @@ whether the global *database* is now connected."
                               host :pooled-p t))))
 
 (defclass event ()
-  ((id :accessor id :col-type serial :initarg :id :initform nil)
+  ((id :accessor id :col-type serial :initarg :id :primary-key t)
    (date :accessor date :col-type timestamp
          :initarg :date :initform (local-time:now))
    (server :accessor server :col-type text :initarg :server)

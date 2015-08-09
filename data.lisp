@@ -52,7 +52,7 @@
     :documentation "IRC message source.")
    (date
     :initarg :date
-    :initform (get-universal-time)
+    :initform (local-time:now)
     :accessor date
     :documentation "Message date in lisp universal date format")
    (nick
@@ -89,11 +89,7 @@
   (:documentation  "Format message date in UTC."))
 
 (defmethod date-fmt ((msg irc-message))
-  (multiple-value-bind (sec min hour day month year day-of-week dst-p tz)
-      (decode-universal-time (date msg) 0)
-    (declare (ignore day-of-week dst-p tz))
-    (format nil "~4,'0d-~2,'0d-~2,'0d ~2,'0d:~2,'0d:~2,'0d UTC"
-            year month day hour min sec)))
+  (local-time:format-timestring nil (date msg)))
 
 ;; Process message and do some action
 (defgeneric process (irc-message)
@@ -110,8 +106,26 @@
 (defgeneric save (irc-message)
   (:documentation  "Save message to database."))
 
-(defmethod save ((msg irc-message))
-  (format t "Saving ~a~%" msg))
+(defmethod save ((msg irc-message)) nil)
+
+;; Generic saving to database
+
+(defmacro save-instance (msg &rest rest)
+  "Save IRC message with additional arguments (REST)."
+  `(with-accessors ((date date)
+		    (server server)
+		    (nick nick)
+		    (host host)) ,msg
+     (postmodern:insert-dao
+      (make-instance 'event
+		     :date (local-time:format-timestring
+			    nil
+			    date
+			    :timezone local-time:+utc-zone+)
+		     :nick nick
+		     :host host
+		     :server server
+		     ,@rest))))
 
 ;; Numeric response
 
@@ -149,6 +163,13 @@
   (with-accessors ((args args)
                    (message message)) msg
     (setf message (car args))))
+
+(defmethod save ((msg quit-message))
+  (dolist (ch (channels msg))
+    (save-instance msg :channel ch
+		   :message (message msg)
+		   :message-type "QUIT")))
+
 
 (defmethod save-p ((msg quit-message)) t)
 
@@ -197,6 +218,9 @@
   ((channel
     :documentation "IRC channel which user joined.")))
 
+(defmethod save ((msg join-message))
+  (save-instance msg :channel (channel msg) :message-type "JOIN"))
+
 ;; PRIVMSG message
 
 (defclass privmsg-message (channel-message)
@@ -215,6 +239,13 @@
                    (message message)) msg
     (setf message (car args))))
 
+(defmethod save ((msg privmsg-message))
+  (with-accessors ((channel channel) (message message)) msg
+    (save-instance msg
+		   :channel channel
+		   :message message
+		   :message-type "PRIVMSG")))
+
 (defmethod print-object ((msg privmsg-message) stream)
   "Print PRIVMSG object."
   (print-unreadable-object (msg stream :type t :identity t)
@@ -229,11 +260,25 @@
 
 (defclass notice-message (privmsg-message) ())
 
+(defmethod save ((msg notice-message))
+  (with-accessors ((channel channel) (message message)) msg
+    (save-instance msg
+		   :channel channel
+		   :message message
+		   :message-type "NOTICE")))
+
 ;; PART message
 
 (defclass part-message (privmsg-message)
   ((channel
     :documentation "IRC channel which user leaves.")))
+
+(defmethod save ((msg part-message))
+  (with-accessors ((channel channel) (message message)) msg
+    (save-instance msg
+		   :channel channel
+		   :message message
+		   :message-type "PART")))
 
 ;; PRIVMSG ACTION
 (defclass action-message (privmsg-message)
@@ -246,6 +291,13 @@
   "Initialize PRIVMSG action object, parse ACTION."
   (with-accessors ((message message) (action action)) msg
     (setf action (subseq (string-trim '(#\u001) message) 8))))
+
+(defmethod save ((msg action-message))
+  (with-accessors ((channel channel) (action action)) msg
+    (save-instance msg
+		   :channel channel
+		   :message action
+		   :message-type "ACTION")))
 
 (defmethod print-object ((msg action-message) stream)
   "Print PRIVMSG ACTION object."
@@ -294,4 +346,3 @@
             (host msg)
             (channel msg)
             (user msg))))
-
