@@ -145,7 +145,7 @@
 	       (= code 441))             ;ERRNICKCOLLISION
 	   (error 'nickname-already-in-use
 		  :text (format nil "~{~a~^ ~}" args)))
-	  ((= code 474)
+	  ((= code 474)			;USER HAS BANNED FOR THIS POST
 	   (error 'logger-was-banned
 		  :text (format nil "~{~a~^ ~}" args)))))
   (call-next-method))
@@ -166,7 +166,7 @@
 
 (defmethod save ((msg quit-message))
   (dolist (ch (channels msg))
-    (save-instance msg :channel ch
+    (save-instance msg :channel (format nil "#~a" ch)
 		   :message (message msg)
 		   :message-type "QUIT")))
 
