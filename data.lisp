@@ -18,6 +18,10 @@
     :initarg :server
     :accessor server
     :documentation "IRC server.")
+   (channels
+    :initarg :channels
+    :accessor channels
+    :documentation "Subscribed channels.")
    (prefix
     :initarg :prefix
     :accessor prefix
@@ -194,6 +198,16 @@
             (host msg)
             (channel msg)
             (args msg))))
+
+(defmethod print-object ((msg quit-message) stream)
+  "Print PRIVMSG object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: NICK: '~a' HOST: '~a' CHANNELS: '~a' MSG: '~a'"
+            (date-fmt msg)
+            (nick msg)
+            (host msg)
+            (channels msg)
+            (message msg))))
 
 (defmethod print-object ((msg privmsg-message) stream)
   "Print PRIVMSG object."
