@@ -8,6 +8,7 @@
   :depends-on (#:usocket #:split-sequence #:postmodern #:local-time)
   :components ((:file "package")
                (:file "utils")
+               (:file "logging")
                (:file "data")
                (:file "database")
                (:file "parser")

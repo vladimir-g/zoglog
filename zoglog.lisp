@@ -8,27 +8,27 @@
 (defun restart-change-nick (c)
   "Invoke CHANGE-NICK restart."
   (declare (ignore c))
-  (format t "Changing nick~%")
+  (log-fmt "Changing nick")
   (invoke-restart 'change-nick))
 
 (defun restart-kicked (c)
   "Rejoin after kick."
-  (format t "Joining ~a after kick~%" c)
+  (log-fmt "Joining ~a after kick" c)
   (invoke-restart 'join-after-kick (text c)))
 
 (defun restart-message-parse-error (c)
   "Invoke CONTINUE restart on message parsing error."
-  (format t "Parse error: ~a, line: ~a~%" c (raw c))
+  (log-fmt "Parse error: ~a, line: ~a" c (raw c))
   (invoke-restart 'continue))
 
 (defun restart-banned (c)
   "Do nothing when logger was banned."
-  (format t "Logger was banned: ~a~%" (text c))
+  (log-fmt "Logger was banned: ~a" (text c))
   (invoke-restart 'continue))
 
 (defun restart-unknown-error (c)
   "Invoke RESTART-LOOP on other errors."
-  (format t "Unknown error: ~a" c)
+  (log-fmt "Unknown error: ~a" c)
   (invoke-restart 'restart-loop))
 
 (defun log-server (server port nick channels)
@@ -74,6 +74,6 @@
                  (usocket:socket-close socket))
                ;; Do-loop ends when socket disconnected, reconnect after
                ;; timeout
-               (format t "Reconnecting~%")
+               (log-fmt "Reconnecting")
                (sleep *reconnect-timeout*))
            (restart-loop () nil)))))
