@@ -23,6 +23,7 @@
 
 (defun log-server (server port nick channels)
   "Run logging loop for specified server."
+  (update-db-channels server channels)
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
                  (message-parse-error #'restart-message-parse-error)
                  (error #'restart-unknown-error))

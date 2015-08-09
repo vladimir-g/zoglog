@@ -57,9 +57,11 @@ whether the global *database* is now connected."
                        :on-delete :cascade :on-update :cascade))()
 
 (defun table-exists (name)
+  "Check if table exists."
   (postmodern:query (:select t :from 'pg-tables :where (:= 'tablename name))))
 
 (defun init-db ()
+  "Create tables and indexes if they don't exist."
   (unless (table-exists "events")
     (postmodern:execute (postmodern:dao-table-definition 'event))
     (postmodern:query (:create-index 'events_serv_chan_date_idx :on "events"
@@ -67,8 +69,38 @@ whether the global *database* is now connected."
     (postmodern:query (:create-index 'events_nick_idx :on "events"
 				     :fields 'nick)))
   (unless (table-exists "servers")
-    (postmodern:execute (postmodern:dao-table-definition 'server)))
+    (postmodern:execute (postmodern:dao-table-definition 'server))
+    (postmodern:query (:create-unique-index 'servers_name_idx :on "servers"
+					    :fields 'name)))
   (unless (table-exists "channels")
     (postmodern:create-table 'channels)))
 
+(defun disconnect-db ()
+  "Disconnect from database."
+  (postmodern:clear-connection-pool)
+  (postmodern:disconnect-toplevel))
 
+(defun update-db-channels (server channels)
+  "Save server and channels to database if needed."
+  (let ((server-id (postmodern:query (:select 'id :from 'servers
+					      :where (:= 'name server))
+				     :single)))
+    (when (not server-id)
+      (setf server-id (postmodern:query
+		       (:insert-into 'servers
+				     :set 'name server
+				     :returning 'id)
+		       :single)))
+    (loop
+       for ch in channels
+       do
+	 (let ((ch-id (postmodern:query
+		       (:select 'id :from 'channels
+				:where (:and (:= 'name ch)
+					     (:= 'server-id server-id)))
+		       :single)))
+	   (when (not ch-id)
+	     (postmodern:query (:insert-into 'channels
+					     :set 'name ch
+					     'server-id server-id)))))))
+    
