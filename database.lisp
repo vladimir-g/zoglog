@@ -2,23 +2,16 @@
 
 (in-package #:zoglog)
 
-(defvar *db-connection* nil)
-(defvar *default-database* "zoglog")
+(defvar *database-name* "zoglog")
 (defvar *database-user* "zoglog")
 (defvar *database-password* "zoglog")
+(defvar *database-host* "localhost")
+(defvar *db* '(*default-database* *database-user* *database-password* "localhost" :pooled-p t))
 
-(defun connect-db (&optional (database *default-database*)
-                     (database-user *database-user*)  
-                     (database-password *database-password*)
-                     (host "localhost"))
-  "Start the database connection. Reconnects if there is an
-unconnected database in *database* which matches the database
-parameter in the function, it will be reconnected. Returns boolean on
-whether the global *database* is now connected."
-  (unless postmodern:*database*
-    (setf postmodern:*database*
-          (postmodern:connect database database-user database-password
-                              host :pooled-p t))))
+(defmacro with-db (&body body)
+  `(postmodern:with-connection
+       `(,*database-name* ,*database-user* ,*database-password* ,*database-host* :pooled-p t)
+     ,@body))
 
 (defclass event ()
   ((id :accessor id :col-type serial :initarg :id :primary-key t)
@@ -62,18 +55,19 @@ whether the global *database* is now connected."
 
 (defun init-db ()
   "Create tables and indexes if they don't exist."
-  (unless (table-exists "events")
-    (postmodern:execute (postmodern:dao-table-definition 'event))
-    (postmodern:query (:create-index 'events_serv_chan_date_idx :on "events"
-				     :fields 'server 'channel 'date))
-    (postmodern:query (:create-index 'events_nick_idx :on "events"
-				     :fields 'nick)))
-  (unless (table-exists "servers")
-    (postmodern:execute (postmodern:dao-table-definition 'server))
-    (postmodern:query (:create-unique-index 'servers_name_idx :on "servers"
-					    :fields 'name)))
-  (unless (table-exists "channels")
-    (postmodern:create-table 'channels)))
+  (with-db
+    (unless (table-exists "events")
+      (postmodern:execute (postmodern:dao-table-definition 'event))
+      (postmodern:query (:create-index 'events_serv_chan_date_idx :on "events"
+				       :fields 'server 'channel 'date))
+      (postmodern:query (:create-index 'events_nick_idx :on "events"
+				       :fields 'nick)))
+    (unless (table-exists "servers")
+      (postmodern:execute (postmodern:dao-table-definition 'server))
+      (postmodern:query (:create-unique-index 'servers_name_idx :on "servers"
+					      :fields 'name)))
+    (unless (table-exists "channels")
+      (postmodern:create-table 'channels))))
 
 (defun disconnect-db ()
   "Disconnect from database."
@@ -82,25 +76,51 @@ whether the global *database* is now connected."
 
 (defun update-db-channels (server channels)
   "Save server and channels to database if needed."
-  (let ((server-id (postmodern:query (:select 'id :from 'servers
-					      :where (:= 'name server))
-				     :single)))
-    (when (not server-id)
-      (setf server-id (postmodern:query
-		       (:insert-into 'servers
-				     :set 'name server
-				     :returning 'id)
-		       :single)))
-    (loop
-       for ch in channels
-       do
-	 (let ((ch-id (postmodern:query
-		       (:select 'id :from 'channels
-				:where (:and (:= 'name ch)
-					     (:= 'server-id server-id)))
-		       :single)))
-	   (when (not ch-id)
-	     (postmodern:query (:insert-into 'channels
-					     :set 'name ch
-					     'server-id server-id)))))))
+  (with-db
+    (let ((server-id (postmodern:query (:select 'id :from 'servers
+						:where (:= 'name server))
+				       :single)))
+      (when (not server-id)
+	(setf server-id (postmodern:query
+			 (:insert-into 'servers
+				       :set 'name server
+				       :returning 'id)
+			 :single)))
+      (loop
+	 for ch in channels
+	 do
+	   (let ((ch-id (postmodern:query
+			 (:select 'id :from 'channels
+				  :where (:and (:= 'name ch)
+					       (:= 'server-id server-id)))
+			 :single)))
+	     (when (not ch-id)
+	       (postmodern:query (:insert-into 'channels
+					       :set 'name ch
+					       'server-id server-id))))))))
     
+
+;; Query functions
+
+(defun get-all-channels ()
+  "Get all channels with server names instead of ids."
+  (with-db
+    (postmodern:with-column-writers ('server 'server-id)
+      (postmodern:query-dao
+       'channels
+       (:order-by (:select 'channels.* (:as 'servers.name 'server)
+			   :from 'channels
+			   :left-join 'servers
+			   :on (:= 'channels.server-id 'servers.id))
+		  'servers.name 'channels.name)))))
+
+(defun channel-exists-p (server-name channel-name)
+  "Get all channels with server names instead of ids."
+  (with-db
+    (postmodern:query (:select t
+			       :from 'channels
+			       :left-join 'servers
+			       :on (:= 'channels.server-id 'servers.id)
+			       :where (:and (:= 'servers.name '$1)
+					    (:= 'channels.name '$2)))
+		      server-name channel-name :single)))

@@ -42,7 +42,7 @@
             (s (string-right-trim '(#\newline #\return) line))
             (args '())
             (command ""))
-        (when (eq (char s 0) #\colon)
+        (when (eq (char s 0) #\:)
           (let ((splitted (split-once s " ")))
             (setf s (cadr splitted))
             (setf prefix (subseq (car splitted) 1))))

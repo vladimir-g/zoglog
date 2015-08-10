@@ -8,12 +8,14 @@
   :depends-on (#:usocket
 	       #:split-sequence
 	       #:postmodern
-	       #:local-time)
+	       #:local-time
+	       #:hunchentoot)
   :components ((:file "package")
                (:file "utils")
                (:file "logging")
                (:file "data")
                (:file "database")
                (:file "parser")
+	       (:file "web")
 	       (:file "zoglog")))
 

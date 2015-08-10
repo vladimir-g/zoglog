@@ -23,7 +23,7 @@
 (defun send-pong (stream line)
   "Send 'PONG' in answer to 'PING' line throuck STREAM."
   (let ((data (string-trim '(#\space #\return #\newline)
-                           (cadr (split-sequence #\colon line :count 2)))))
+                           (cadr (split-sequence #\: line :count 2)))))
     (send-cmd stream "PONG :~a" data)))
 
 (defun split-once (line seq)
