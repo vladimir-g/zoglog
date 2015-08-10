@@ -5,7 +5,10 @@
   :author "Your Name <your.name@example.com>"
   :license "Specify license here"
   :serial t
-  :depends-on (#:usocket #:split-sequence #:postmodern #:local-time)
+  :depends-on (#:usocket
+	       #:split-sequence
+	       #:postmodern
+	       #:local-time)
   :components ((:file "package")
                (:file "utils")
                (:file "logging")

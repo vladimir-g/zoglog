@@ -37,6 +37,7 @@
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
 		 (logger-was-kicked #'restart-kicked)
                  (message-parse-error #'restart-message-parse-error)
+		 (stream-error #'restart-message-parse-error)
 		 (logger-was-banned #'restart-banned)
                  (error #'restart-unknown-error))
     (loop do
