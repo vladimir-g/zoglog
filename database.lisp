@@ -125,15 +125,48 @@
 					    (:= 'channels.name '$2)))
 		      server-name channel-name :single)))
 
-(defun get-log-records (&key server channel limit)
+(defun get-log-records (&key server channel date-from date-to nick
+			  host message-type message (limit 50))
   "Get events DAO list from database."
+  (when (not limit)
+    (setf limit 50))
   (with-db
     (postmodern:query-dao
      'event
      (:limit
       (:order-by 
        (:select '* :from 'events
-                :where (:and (:= 'server server)
-                             (:= 'channel channel)))
+                :where (:and
+			(:raw (if server
+				  (postmodern:sql (:= 'server server))
+				  "'t'"))
+			(:raw (if channel
+				  (postmodern:sql (:= 'channel channel))
+				  "'t'"))
+			(:raw (if date-from
+				  (postmodern:sql (:>= 'date date-from))
+				  "'t'"))
+			(:raw (if date-to
+				  (postmodern:sql (:<= 'date date-to))
+				  "'t'"))
+			(:raw (if nick
+				  (postmodern:sql (:= 'nick nick))
+				  "'t'"))
+			(:raw (if host
+				  (postmodern:sql
+				   (:ilike 'host (concatenate
+						  'string "%" host "%")))
+				  "'t'"))
+			(:raw (if message
+				  (postmodern:sql
+				   (:ilike 'message (concatenate 'string
+								 "%"
+								 message
+								 "%")))
+				  "'t'"))
+			(:raw (if message-type
+				  (postmodern:sql
+				   (:= 'message-type message-type))
+				  "'t'"))))
        (:desc 'date))
       limit))))

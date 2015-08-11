@@ -19,12 +19,19 @@
 and return these names."
   (multiple-value-bind (str match)
       (cl-ppcre:scan-to-strings "^/channel/([^/]+)/([^/]+)/$"
-				(hunchentoot:request-uri* request))
+				(hunchentoot:script-name* request))
     (declare (ignore str))
     match))
 
-(hunchentoot:define-easy-handler (channel-log :uri #'match-channel) ()
-  "Display channel log."
+
+;; Maximum log entries on one page
+(defvar *log-display-limit* 200)
+
+(hunchentoot:define-easy-handler (channel-log :uri #'match-channel
+					      :default-request-type :get)
+    (date-from date-to nick host message
+	       (limit :parameter-type 'integer))
+  "Display filtered channel log."
   (destructuring-bind (server channel)
       (map 'list #'(lambda (x) x) (match-channel hunchentoot:*request*))
     (progn
@@ -34,7 +41,18 @@ and return these names."
         (return-from channel-log nil))
       (setf (hunchentoot:content-type*) "text/plain")
       (setf channel (format nil "#~a" channel))
+
+      ;; Validate filter parameters
+      (when (and limit (> limit *log-display-limit*))
+	(setf limit *log-display-limit*))
       ;; Get log records
       (with-output-to-string (out)
-        (dolist (msg (get-log-records :server server :channel channel :limit 10))
-          (format out "~a: ~a~%" (date msg) (message msg)))))))
+        (dolist (msg (get-log-records :server server
+				      :channel channel
+				      :host host
+				      :nick nick
+				      :message message
+				      :date-from date-from
+				      :date-to date-to
+				      :limit limit))
+          (format out "~a ~a: ~a~%" (date msg) (nick msg) (message msg)))))))
