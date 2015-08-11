@@ -25,8 +25,16 @@ and return these names."
 
 (hunchentoot:define-easy-handler (channel-log :uri #'match-channel) ()
   "Display channel log."
-  (let ((matches (match-channel hunchentoot:*request*)))
-    (unless (channel-exists-p (elt matches 0) (elt matches 1))
-      (return-404)
-      (return-from channel-log nil))
-    (format nil "Found!")))
+  (destructuring-bind (server channel)
+      (map 'list #'(lambda (x) x) (match-channel hunchentoot:*request*))
+    (progn
+      ;; Show 404 if channel not found
+      (unless (channel-exists-p server channel)
+        (return-404)
+        (return-from channel-log nil))
+      (setf (hunchentoot:content-type*) "text/plain")
+      (setf channel (format nil "#~a" channel))
+      ;; Get log records
+      (with-output-to-string (out)
+        (dolist (msg (get-log-records :server server :channel channel :limit 10))
+          (format out "~a: ~a~%" (date msg) (message msg)))))))

@@ -124,3 +124,16 @@
 			       :where (:and (:= 'servers.name '$1)
 					    (:= 'channels.name '$2)))
 		      server-name channel-name :single)))
+
+(defun get-log-records (&key server channel limit)
+  "Get events DAO list from database."
+  (with-db
+    (postmodern:query-dao
+     'event
+     (:limit
+      (:order-by 
+       (:select '* :from 'events
+                :where (:and (:= 'server server)
+                             (:= 'channel channel)))
+       (:desc 'date))
+      limit))))
