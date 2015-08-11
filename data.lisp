@@ -116,16 +116,17 @@
 		    (server server)
 		    (nick nick)
 		    (host host)) ,msg
-     (postmodern:insert-dao
-      (make-instance 'event
-		     :date (local-time:format-timestring
-			    nil
-			    date
-			    :timezone local-time:+utc-zone+)
-		     :nick nick
-		     :host host
-		     :server server
-		     ,@rest))))
+     (with-db
+       (postmodern:insert-dao
+        (make-instance 'event
+                       :date (local-time:format-timestring
+                              nil
+                              date
+                              :timezone local-time:+utc-zone+)
+                       :nick nick
+                       :host host
+                       :server server
+                       ,@rest)))))
 
 ;; Numeric response
 

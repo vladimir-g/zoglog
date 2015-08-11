@@ -23,10 +23,10 @@ and return these names."
     (declare (ignore str))
     match))
 
-(hunchentoot:define-easy-handler (channel :uri #'match-channel) ()
+(hunchentoot:define-easy-handler (channel-log :uri #'match-channel) ()
   "Display channel log."
   (let ((matches (match-channel hunchentoot:*request*)))
     (unless (channel-exists-p (elt matches 0) (elt matches 1))
       (return-404)
-      (return-from channel nil))
+      (return-from channel-log nil))
     (format nil "Found!")))

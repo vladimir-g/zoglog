@@ -31,6 +31,7 @@
 (defun restart-unknown-error (c)
   "Invoke RESTART-LOOP on other errors."
   (log-fmt "Unknown error: ~a" c)
+  (sleep 1)
   (invoke-restart 'restart-loop))
 
 (defun log-server (server port nick channels)
