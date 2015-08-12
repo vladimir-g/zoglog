@@ -119,10 +119,7 @@
      (with-db
        (postmodern:insert-dao
         (make-instance 'event
-                       :date (local-time:format-timestring
-                              nil
-                              date
-                              :timezone local-time:+utc-zone+)
+                       :date (date-to-pg date)
                        :nick nick
                        :host host
                        :server server
@@ -291,7 +288,7 @@
 (defmethod initialize-instance :after ((msg action-message) &key)
   "Initialize PRIVMSG action object, parse ACTION."
   (with-accessors ((message message) (action action)) msg
-    (setf action (subseq (string-trim '(#\u001) message) 8))))
+    (setf action (subseq (string-trim '(#\u001) message) 7))))
 
 (defmethod save ((msg action-message))
   (with-accessors ((channel channel) (action action)) msg

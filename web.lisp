@@ -24,8 +24,12 @@ and return these names."
     match))
 
 
+(defun convert-date (string)
+  "Convert STRING to local-time timestamp or nil."
+  (local-time:parse-timestring string :fail-on-error nil))
+
 ;; Maximum log entries on one page
-(defvar *log-display-limit* 200)
+(defvar *log-display-limit* 1000)
 
 (hunchentoot:define-easy-handler (channel-log :uri #'match-channel
 					      :default-request-type :get)
@@ -45,14 +49,22 @@ and return these names."
       ;; Validate filter parameters
       (when (and limit (> limit *log-display-limit*))
 	(setf limit *log-display-limit*))
+      (when date-from
+	(setf date-from (convert-date date-from)))
+      (when date-to
+	(setf date-to (convert-date date-to)))
+
       ;; Get log records
       (with-output-to-string (out)
-        (dolist (msg (get-log-records :server server
-				      :channel channel
-				      :host host
-				      :nick nick
-				      :message message
-				      :date-from date-from
-				      :date-to date-to
-				      :limit limit))
-          (format out "~a ~a: ~a~%" (date msg) (nick msg) (message msg)))))))
+        (dolist (msg (nreverse (get-log-records :server server
+                                                :channel channel
+                                                :host host
+                                                :nick nick
+                                                :message message
+                                                :date-from date-from
+                                                :date-to date-to
+                                                :limit limit)))
+          (format out "~a ~a: ~a~%"
+                  (local-time:universal-to-timestamp (date msg))
+                  (nick msg)
+                  (message msg)))))))

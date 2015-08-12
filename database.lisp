@@ -125,11 +125,17 @@
 					    (:= 'channels.name '$2)))
 		      server-name channel-name :single)))
 
+(defun date-to-pg (timestamp)
+  "Convert date to postgresql format."
+  (local-time:format-timestring nil
+                                timestamp
+                                :timezone local-time:+utc-zone+))
+
 (defun get-log-records (&key server channel date-from date-to nick
 			  host message-type message (limit 50))
   "Get events DAO list from database."
   (when (not limit)
-    (setf limit 50))
+    (setf limit 200))
   (with-db
     (postmodern:query-dao
      'event
@@ -144,10 +150,12 @@
 				  (postmodern:sql (:= 'channel channel))
 				  "'t'"))
 			(:raw (if date-from
-				  (postmodern:sql (:>= 'date date-from))
+				  (postmodern:sql (:>= 'date (date-to-pg
+                                                              date-from)))
 				  "'t'"))
 			(:raw (if date-to
-				  (postmodern:sql (:<= 'date date-to))
+				  (postmodern:sql (:<= 'date (date-to-pg
+                                                              date-to)))
 				  "'t'"))
 			(:raw (if nick
 				  (postmodern:sql (:= 'nick nick))
