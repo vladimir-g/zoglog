@@ -1,18 +1,20 @@
 (in-package #:zoglog)
 
+;;; Templates
+
+(djula:add-template-directory (asdf:system-relative-pathname "zoglog" "tpl/"))
+(defparameter +base.html+ (djula:compile-template* "base.html"))
+(defparameter +main.html+ (djula:compile-template* "main.html"))
+(defparameter +channel.html+ (djula:compile-template* "channel.html"))
+
+;;; Handlers
+
 (defun return-404 ()
   (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+))
 
 (hunchentoot:define-easy-handler (main :uri "/") ()
   "Main page, display list of channels with servers."
-  (setf (hunchentoot:content-type*) "text/plain")
-  (with-output-to-string (out)
-    (let ((server))
-      (dolist (channel (get-all-channels))
-	(when (string/= server (server-id channel))
-	  (format out "~a:~%" (server-id channel))
-	  (setf server (server-id channel)))
-	(format out "~c~a~%" #\tab (name channel))))))
+  (djula:render-template* +main.html+ nil :channels (get-all-channels)))
 
 (defun match-channel (request)
   "Check if url matches scheme /channel/:server-name/:channel-name/
@@ -43,7 +45,6 @@ and return these names."
       (unless (channel-exists-p server channel)
         (return-404)
         (return-from channel-log nil))
-      (setf (hunchentoot:content-type*) "text/plain")
       (setf channel (format nil "#~a" channel))
 
       ;; Validate filter parameters
@@ -53,18 +54,24 @@ and return these names."
 	(setf date-from (convert-date date-from)))
       (when date-to
 	(setf date-to (convert-date date-to)))
+     
+      (djula:render-template* +channel.html+
+			      nil
+			      :messages (nreverse (get-log-records
+						   :server server
+						   :channel channel
+						   :host host
+						   :nick nick
+						   :message message
+						   :date-from date-from
+						   :date-to date-to
+						   :limit limit))
+			      :server server
+			      :channel channel))))
 
-      ;; Get log records
-      (with-output-to-string (out)
-        (dolist (msg (nreverse (get-log-records :server server
-                                                :channel channel
-                                                :host host
-                                                :nick nick
-                                                :message message
-                                                :date-from date-from
-                                                :date-to date-to
-                                                :limit limit)))
-          (format out "~a ~a: ~a~%"
-                  (local-time:universal-to-timestamp (date msg))
-                  (nick msg)
-                  (message msg)))))))
+(defun start-web ()
+  (hunchentoot:start
+   (make-instance 'hunchentoot:easy-acceptor
+		  :port 4242
+		  :document-root
+		  (asdf:system-relative-pathname "zoglog" "www/"))))

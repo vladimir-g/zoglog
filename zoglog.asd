@@ -9,12 +9,13 @@
 	       #:split-sequence
 	       #:postmodern
 	       #:local-time
-	       #:hunchentoot)
+	       #:hunchentoot
+	       #:djula)
   :components ((:file "package")
                (:file "utils")
                (:file "logging")
-               (:file "data")
                (:file "database")
+               (:file "data")
                (:file "parser")
 	       (:file "web")
 	       (:file "zoglog")))
