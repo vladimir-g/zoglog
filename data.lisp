@@ -148,6 +148,37 @@
 		  :text (format nil "~{~a~^ ~}" args)))))
   (call-next-method))
 
+;; NICK message
+(defclass nick-message (irc-message)
+  ((message
+    :initarg :message
+    :accessor message
+    :documentation "New nick.")))
+
+(defmethod initialize-instance :after ((msg nick-message) &key)
+  "Initialize message with contents."
+  (with-accessors ((args args)
+                   (message message)) msg
+    (setf message (car args))))
+
+(defmethod save ((msg nick-message))
+  (dolist (ch (channels msg))
+    (save-instance msg :channel (format nil "#~a" ch)
+		   :message (message msg)
+		   :message-type "NICK")))
+
+(defmethod save-p ((msg nick-message)) t)
+
+(defmethod print-object ((msg nick-message) stream)
+  "Print NICK object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: NICK: '~a' HOST: '~a' CHANNELS: '~a' NEW NICK: '~a'"
+            (date-fmt msg)
+            (nick msg)
+            (host msg)
+            (channels msg)
+            (message msg))))
+
 ;; QUIT message
 ;; Maybe made subclass with "message" contents?
 (defclass quit-message (irc-message)

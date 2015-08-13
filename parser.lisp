@@ -30,6 +30,8 @@
       ((string= command "PART") (init-instance 'part-message))
       ;; QUIT
       ((string= command "QUIT") (init-instance 'quit-message))
+      ;; NICK
+      ((string= command "NICK") (init-instance 'nick-message))
       ;; KICK
       ((string= command "KICK") (init-instance 'kick-message))
       ;; Other
