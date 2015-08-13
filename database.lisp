@@ -131,11 +131,20 @@
                                 timestamp
                                 :timezone local-time:+utc-zone+))
 
-(defun get-log-records (&key server channel date-from date-to nick
-			  host message-type message (limit 50))
+(defvar *default-log-limit* 100)
+
+(defun get-log-records (&key server
+                          channel
+                          date-from
+                          date-to
+                          nick
+			  host
+                          message-type
+                          message
+                          limit)
   "Get events DAO list from database."
-  (when (not limit)
-    (setf limit 200))
+  (unless limit
+    (setf limit *default-log-limit*))
   (with-db
     (postmodern:query-dao
      'event

@@ -59,4 +59,20 @@
     </tbody>
   </table>
 
+  <nav>
+    <ul class="pager">
+      {% if prev-link %}
+        <li class="previous">
+          <a href="{{ prev-link|urlencode }}"><span aria-hidden="true">&larr;</span> Older</a>
+        </li>
+      {% endif %}
+      {% if next-link %}
+        <li class="next">
+          <a href="{{ next-link|urlencode }}">
+            Newer <span aria-hidden="true">&rarr;</span></a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+
 {% endblock %}

@@ -36,3 +36,10 @@
 (defun numeric-p (string)
   "Check if string contains only digits."
   (not (position-if-not #'digit-char-p string)))
+
+(defun slice-list (lst start &optional end)
+  "Save SUBSEQ wrapper for with length checking."
+  (let ((len (length lst)))
+    (when (or (not end) (> end len))
+      (setf end len))
+    (subseq lst start end)))

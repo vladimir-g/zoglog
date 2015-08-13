@@ -30,6 +30,18 @@ and return these names."
   "Convert STRING to local-time timestamp or nil."
   (local-time:parse-timestring string :fail-on-error nil))
 
+(defun get-pager-links (&key server
+                          channel
+                          date-from
+                          date-to nick
+			  host
+                          message-type
+                          limit
+                          messages)
+  (let ((next-link (= (length messages) (+ limit 1)))
+        (prev-link nil))
+    (values next-link prev-link)))
+
 ;; Maximum log entries on one page
 (defvar *log-display-limit* 1000)
 
@@ -48,26 +60,38 @@ and return these names."
       (setf channel (format nil "#~a" channel))
 
       ;; Validate filter parameters
-      (when (and limit (> limit *log-display-limit*))
-	(setf limit *log-display-limit*))
+      (if limit
+          (when (> limit *log-display-limit*)
+            (setf limit *log-display-limit*))
+          (setf limit *default-log-limit*))
       (when date-from
 	(setf date-from (convert-date date-from)))
       (when date-to
 	(setf date-to (convert-date date-to)))
-     
-      (djula:render-template* +channel.html+
-			      nil
-			      :messages (nreverse (get-log-records
-						   :server server
-						   :channel channel
-						   :host host
-						   :nick nick
-						   :message message
-						   :date-from date-from
-						   :date-to date-to
-						   :limit limit))
-			      :server server
-			      :channel channel))))
+
+      (let ((messages (get-log-records
+                       :server server
+                       :channel channel
+                       :host host
+                       :nick nick
+                       :message message
+                       :date-from date-from
+                       :date-to date-to
+                       :limit (+ limit 1))))
+        (multiple-value-bind (next-link prev-link)
+            (get-pager-links :server server :channel channel
+                             :host host :nick nick
+                             :message message :date-from date-from
+                             :date-to date-to :limit limit
+                             :messages messages))
+          (djula:render-template* +channel.html+
+                                  nil
+                                  :messages (slice-list
+                                             (nreverse messages) 0 limit)
+                                  :server server
+                                  :channel channel
+                                  :next-link next-link
+                                  :prev-link prev-link))))))
 
 (defun start-web ()
   (hunchentoot:start
