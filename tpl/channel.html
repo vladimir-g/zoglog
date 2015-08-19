@@ -18,11 +18,12 @@
     <tbody>
       {% for message in messages %}
 
-	<tr{% if message.message-type == "NOTICE" %} class="info"{% endif %}
-	      {% if message.message-type == "ACTION" %} class="warning"{% endif %}
-	      {% if message.message-type == "KICK" %} class="danger"{% endif %}>
+	<tr id="#{{message.id }}"
+           {% if message.message-type == "NOTICE" %} class="info"{% endif %}
+	   {% if message.message-type == "ACTION" %} class="warning"{% endif %}
+	   {% if message.message-type == "KICK" %} class="danger"{% endif %}>
 	      
-	      <td class="text-nowrap"><small>{{ message.date|datetime:(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2)) }}</small> {{message.id }}</td>
+	      <td class="text-nowrap"><small>{{ message.date|datetime:(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2)) }}</small></td>
 	      <td class="text-right">
 		{% if message.message-type == "PRIVMSG" or message.message-type == "NOTICE" or message.message-type == "ACTION" %}
 		  <strong>{{ message.nick }}</strong>
