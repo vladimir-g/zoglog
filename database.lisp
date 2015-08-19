@@ -141,7 +141,10 @@
 			  host
                           message-type
                           message
-                          limit)
+                          to-id
+                          from-id
+                          limit
+                          sort)
   "Get events DAO list from database."
   (unless limit
     (setf limit *default-log-limit*))
@@ -166,6 +169,12 @@
 				  (postmodern:sql (:<= 'date (date-to-pg
                                                               date-to)))
 				  "'t'"))
+			(:raw (if from-id
+				  (postmodern:sql (:> 'id from-id))
+				  "'t'"))
+			(:raw (if to-id
+				  (postmodern:sql (:< 'id to-id))
+				  "'t'"))
 			(:raw (if nick
 				  (postmodern:sql (:= 'nick nick))
 				  "'t'"))
@@ -185,5 +194,7 @@
 				  (postmodern:sql
 				   (:= 'message-type message-type))
 				  "'t'"))))
-       (:desc 'date))
+       (:raw (if (eq sort 'asc)
+                 (postmodern:sql 'date)
+                 (postmodern:sql (:desc 'date)))))
       limit))))

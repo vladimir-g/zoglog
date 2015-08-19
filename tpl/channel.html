@@ -5,6 +5,7 @@
   <div class="page-header">
     <h1>{{ channel }} <small>{{ server }}</small></h1>
   </div>
+  <nav>
 
   <table class="table table-striped table-hover table-condensed">
     <thead>
@@ -21,7 +22,7 @@
 	      {% if message.message-type == "ACTION" %} class="warning"{% endif %}
 	      {% if message.message-type == "KICK" %} class="danger"{% endif %}>
 	      
-	      <td class="text-nowrap"><small>{{ message.date|datetime:(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2)) }}</small></td>
+	      <td class="text-nowrap"><small>{{ message.date|datetime:(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2)) }}</small> {{message.id }}</td>
 	      <td class="text-right">
 		{% if message.message-type == "PRIVMSG" or message.message-type == "NOTICE" or message.message-type == "ACTION" %}
 		  <strong>{{ message.nick }}</strong>
@@ -61,15 +62,17 @@
 
   <nav>
     <ul class="pager">
-      {% if prev-link %}
+      {% if older-link %}
         <li class="previous">
-          <a href="{{ prev-link|urlencode }}"><span aria-hidden="true">&larr;</span> Older</a>
+          <a href="{{ older-link }}">
+            Older <span aria-hidden="true">&larr;</span></a>
         </li>
       {% endif %}
-      {% if next-link %}
+      {% if newer-link %}
         <li class="next">
-          <a href="{{ next-link|urlencode }}">
-            Newer <span aria-hidden="true">&rarr;</span></a>
+          <a href="{{ newer-link }}">
+            <span aria-hidden="true">&rarr;</span>
+            Newer</a>
         </li>
       {% endif %}
     </ul>

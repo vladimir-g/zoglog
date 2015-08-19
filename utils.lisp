@@ -43,3 +43,7 @@
     (when (or (not end) (> end len))
       (setf end len))
     (subseq lst start end)))
+
+(defun last-but-one (lst)
+  "Get last but one element from list."
+  (first (rest (reverse lst))))
