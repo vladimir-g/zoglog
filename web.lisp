@@ -46,27 +46,28 @@ and return these names."
                                                    '("to-id" "from-id")
                                                    :test #'equal))
                              params))     ; Remove ids from query
+           (has-next (= (length messages) (+ limit 1)))
            (first-id (write-to-string (id (first messages))))
+           (last-id (if has-next
+                        (write-to-string (id (elt messages (- limit 1))))))
            (newer-link)
            (older-link))
       (if from-id
+          ;; Moving from older to newer
           (progn
-            (when (= (length messages) (+ limit 1))
-              (setf newer-link (generate-pager-link url
-                                                    query
-                                                    (cons "from-id" (write-to-string (id (elt messages (- limit 1))))))))
-            (setf older-link (generate-pager-link url
-                                                  query
-                                                  (cons "to-id" first-id))))
+            (when has-next
+              (setf newer-link (generate-pager-link
+                                url query (cons "from-id" last-id))))
+            (setf older-link (generate-pager-link
+                              url query (cons "to-id" first-id))))
+          ;; Moving backwards, from newer to older
           (progn
-            (when (= (length messages) (+ limit 1))
-              (setf older-link (generate-pager-link url
-                                                    query
-                                                    (cons "to-id" (write-to-string (id (elt messages (- limit 1))))))))
+            (when has-next
+              (setf older-link (generate-pager-link
+                                url query (cons "to-id" last-id))))
             (when to-id
-              (setf newer-link (generate-pager-link url
-                                                    query
-                                                    (cons "from-id" first-id))))))
+              (setf newer-link (generate-pager-link
+                                url query (cons "from-id" first-id))))))
       (values newer-link older-link))))
 
 ;; Maximum log entries on one page

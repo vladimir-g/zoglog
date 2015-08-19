@@ -64,13 +64,13 @@
     <ul class="pager">
       {% if older-link %}
         <li class="previous">
-          <a href="{{ older-link }}">
+          <a href="{{ older-link|safe }}">
             Older <span aria-hidden="true">&larr;</span></a>
         </li>
       {% endif %}
       {% if newer-link %}
         <li class="next">
-          <a href="{{ newer-link }}">
+          <a href="{{ newer-link|safe }}">
             <span aria-hidden="true">&rarr;</span>
             Newer</a>
         </li>
