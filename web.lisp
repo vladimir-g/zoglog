@@ -73,12 +73,21 @@ and return these names."
 ;; Maximum log entries on one page
 (defvar *log-display-limit* 1000)
 
+(defun nullable-str (string)
+  (if (= (length string) 0)
+      nil
+      string))
+
 (hunchentoot:define-easy-handler (channel-log :uri #'match-channel
                                               :default-request-type :get)
-    (date-from date-to nick host message
-               (from-id :parameter-type 'integer)
-               (to-id :parameter-type 'integer)
-               (limit :parameter-type 'integer))
+    ((date-from :parameter-type #'nullable-str)
+     (date-to :parameter-type #'nullable-str)
+     (nick :parameter-type #'nullable-str)
+     (host :parameter-type #'nullable-str)
+     (message :parameter-type #'nullable-str)
+     (from-id :parameter-type 'integer)
+     (to-id :parameter-type 'integer)
+     (limit :parameter-type 'integer))
   "Display filtered channel log."
   (destructuring-bind (server channel)
       (map 'list #'(lambda (x) x) (match-channel hunchentoot:*request*))
@@ -111,23 +120,29 @@ and return these names."
                         :to-id to-id
                         :from-id from-id
                         :limit (+ limit 1)
-                        :sort sort)))
+                        :sort sort))
+             (messages-list (slice-list messages 0 limit)))
         (multiple-value-bind (newer-link older-link)
             (get-pager-links :request hunchentoot:*request*
                              :from-id from-id
                              :to-id to-id
                              :messages messages
                              :limit limit)
-          (let ((messages-list (slice-list messages 0 limit)))
-            (if (eq sort 'desc)
-                (setf messages-list (nreverse messages-list)))
-            (djula:render-template* +channel.html+
-                                    nil
-                                    :messages messages-list
-                                    :server server
-                                    :channel channel
-                                    :newer-link newer-link
-                                    :older-link older-link)))))))
+          (if (eq sort 'desc)
+              (setf messages-list (nreverse messages-list)))
+          (djula:render-template* +channel.html+
+                                  nil
+                                  :messages messages-list
+                                  :server server
+                                  :channel channel
+                                  :host host
+                                  :nick nick
+                                  :message message
+                                  :date-from date-from
+                                  :date-to date-to
+                                  :limit limit
+                                  :newer-link newer-link
+                                  :older-link older-link))))))
 
 (defun start-web ()
   "Start logger web interface."
