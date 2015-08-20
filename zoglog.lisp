@@ -97,11 +97,23 @@
                                        (getf server :extra)))
                        :name (format nil "~a-logger" (getf server :server)))))
 
-;; Config file
-(defstruct conf servers)
+;; Config
 (defvar *config*)
+(defstruct conf servers web-port)
 
 (defun read-config (path)
   "Read config struct from file."
   (with-open-file (in path)
     (setf *config* (read in))))
+
+;; Start app
+(defun start (&optional conf-file)
+  (let ((default-conf (asdf:system-relative-pathname "zoglog" "config.lisp")))
+    (unless conf-file
+      (setf conf-file default-conf))
+    (if (probe-file conf-file)
+        (progn
+          (read-config conf-file)
+          (start-web (conf-web-port *config*))
+          (start-logging (conf-servers *config*)))
+        (log-fmt "Config not found, doing nothing."))))
