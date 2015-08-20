@@ -18,7 +18,7 @@
 
 (defun restart-message-parse-error (c)
   "Invoke CONTINUE restart on message parsing error."
-  (if (slot-boundp c 'raw)
+  (if (and (slot-exists c 'raw) (slot-boundp c 'raw))
       (log-fmt "Parse error: ~a, line: ~a" c (raw c))
       (log-fmt "Stream error: ~a" c))
   (invoke-restart 'continue))
@@ -85,17 +85,21 @@
                (sleep *reconnect-timeout*))
            (restart-loop () nil)))))
 
+(defvar *logger-threads*)
+
 (defun start-logging (servers)
   "Start logger for each server in config plist."
-  (loop for server in servers
-     do
-       (bt:make-thread #'(lambda ()
-                           (log-server (getf server :server)
-                                       (getf server :port)
-                                       (getf server :nick)
-                                       (getf server :channels)
-                                       (getf server :extra)))
-                       :name (format nil "~a-logger" (getf server :server)))))
+  (setf *logger-threads*
+	(loop for server in servers
+	   collect
+	     (bt:make-thread #'(lambda ()
+				 (log-server (getf server :server)
+					     (getf server :port)
+					     (getf server :nick)
+					     (getf server :channels)
+					     (getf server :extra)))
+			     :name (format nil "~a-logger"
+					   (getf server :server))))))
 
 ;; Config
 (defvar *config*)

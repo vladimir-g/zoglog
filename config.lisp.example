@@ -1,11 +1,10 @@
 ;; This is example config, copy it to config.lisp
 
-#S(conf
+#S(zoglog::conf
    ;; Plist of servers
-   :servers (list
-             '(:server "localhost"
-               :port 6667
-               :nick "teest"
-               :channels ("test1" "test2")))
+   :servers ((:server "localhost"
+		      :port 6667
+		      :nick "teest"
+		      :channels ("test1" "test2")))
    ;; Hunchentoot listen port
    :web-port 4242)

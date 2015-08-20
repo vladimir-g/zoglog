@@ -144,13 +144,16 @@ and return these names."
                                   :newer-link newer-link
                                   :older-link older-link))))))
 
+(defvar *acceptor*)
+
 (defun start-web (&optional (port 4242))
   "Start logger web interface."
-  (hunchentoot:start
-   (make-instance 'hunchentoot:easy-acceptor
-                  :port port
-                  :document-root
-                  (asdf:system-relative-pathname "zoglog" "www/"))))
+  (setf *acceptor* (make-instance
+		    'hunchentoot:easy-acceptor
+		    :port port
+		    :document-root
+		    (asdf:system-relative-pathname "zoglog" "www/")))
+  (hunchentoot:start *acceptor*))
 
 (let ((testparams '(("a" . "1") ("b" . "3") ("c" . "sndk7&"))))
   (reduce #'(lambda (url params)
