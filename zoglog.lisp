@@ -34,7 +34,7 @@
   (sleep 1)
   (invoke-restart 'restart-loop))
 
-(defun log-server (server port nick channels)
+(defun log-server (server port nick channels &optional extra-commands)
   "Run logging loop for specified server."
   (update-db-channels server channels)
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
@@ -51,6 +51,9 @@
                     (progn
                       (set-nick stream nick)
                       (send-cmd stream "JOIN ~{#~a~^,~}" channels)
+                      (when extra-commands
+                        (loop for cmd in extra-commands
+                             do (send-cmd stream cmd)))
                       (do ((line
                             (read-line stream nil)
                             (read-line stream nil)))
