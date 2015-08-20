@@ -84,3 +84,24 @@
                (log-fmt "Reconnecting")
                (sleep *reconnect-timeout*))
            (restart-loop () nil)))))
+
+(defun start-logging (servers)
+  "Start logger for each server in config plist."
+  (loop for server in servers
+     do
+       (bt:make-thread #'(lambda ()
+                           (log-server (getf server :server)
+                                       (getf server :port)
+                                       (getf server :nick)
+                                       (getf server :channels)
+                                       (getf server :extra)))
+                       :name (format nil "~a-logger" (getf server :server)))))
+
+;; Config file
+(defstruct conf servers)
+(defvar *config*)
+
+(defun read-config (path)
+  "Read config struct from file."
+  (with-open-file (in path)
+    (setf *config* (read in))))

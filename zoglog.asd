@@ -10,6 +10,8 @@
 	       #:postmodern
 	       #:local-time
 	       #:hunchentoot
+               #:bordeaux-threads
+               #:url-rewrite
 	       #:djula)
   :components ((:file "package")
                (:file "utils")

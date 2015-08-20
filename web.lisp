@@ -144,11 +144,11 @@ and return these names."
                                   :newer-link newer-link
                                   :older-link older-link))))))
 
-(defun start-web ()
+(defun start-web (&optional (port 4242))
   "Start logger web interface."
   (hunchentoot:start
    (make-instance 'hunchentoot:easy-acceptor
-                  :port 4242
+                  :port port
                   :document-root
                   (asdf:system-relative-pathname "zoglog" "www/"))))
 
