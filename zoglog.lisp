@@ -155,3 +155,19 @@
           ;; Setup hunchentoot logging
           (setup-web-log (conf-web-log *config*)))
         (vom:info "Config not found, doing nothing."))))
+
+(defun stop ()
+  "Stop all threads."
+  (when *acceptor*
+    (hunchentoot:stop *acceptor*)
+    (setf *acceptor* nil))
+  (if *logger-threads*
+      (dolist (th *logger-threads*)
+        (bt:destroy-thread th)))
+  (when *hunch-log*
+    (close *hunch-log*)
+    (setf *hunch-log* nil))
+  (when *log-stream*
+    (finish-output *log-stream*)
+    (close *log-stream*)
+    (setf *log-stream* nil)))
