@@ -8,29 +8,29 @@
 (defun restart-change-nick (c)
   "Invoke CHANGE-NICK restart."
   (declare (ignore c))
-  (log-fmt "Changing nick")
+  (vom:info "Changing nick")
   (invoke-restart 'change-nick))
 
 (defun restart-kicked (c)
   "Rejoin after kick."
-  (log-fmt "Joining ~a after kick" c)
+  (vom:info "Joining ~a after kick" c)
   (invoke-restart 'join-after-kick (text c)))
 
 (defun restart-message-parse-error (c)
   "Invoke CONTINUE restart on message parsing error."
   (if (and (slot-exists-p c 'raw) (slot-boundp c 'raw))
-      (log-fmt "Parse error: ~a, line: ~a" c (raw c))
-      (log-fmt "Stream error: ~a" c))
+      (vom:error "Parse error: ~a, line: ~a" c (raw c))
+      (vom:error "Stream error: ~a" c))
   (invoke-restart 'continue))
 
 (defun restart-banned (c)
   "Do nothing when logger was banned."
-  (log-fmt "Logger was banned: ~a" (text c))
+  (vom:info "Logger was banned: ~a" (text c))
   (invoke-restart 'continue))
 
 (defun restart-unknown-error (c)
   "Invoke RESTART-LOOP on other errors."
-  (log-fmt "Unknown error: ~a" c)
+  (vom:error "Unknown error: ~a" c)
   (sleep 1)
   (invoke-restart 'restart-loop))
 
@@ -81,7 +81,7 @@
                  (usocket:socket-close socket))
                ;; Do-loop ends when socket disconnected, reconnect after
                ;; timeout
-               (log-fmt "Reconnecting")
+               (vom:info "Reconnecting")
                (sleep *reconnect-timeout*))
            (restart-loop () nil)))))
 
@@ -98,17 +98,47 @@
 					     (getf server :nick)
 					     (getf server :channels)
 					     (getf server :extra)))
+                             :initial-bindings (list (cons
+                                                      '*standard-output*
+                                                      *standard-output*))
 			     :name (format nil "~a-logger"
 					   (getf server :server))))))
 
 ;; Config
 (defvar *config*)
-(defstruct conf servers web-port)
+(defstruct conf servers web-port log-path web-log)
 
 (defun read-config (path)
   "Read config struct from file."
   (with-open-file (in path)
     (setf *config* (read in))))
+
+(defvar *log-stream*)
+(defun create-log-file (path)
+  (if path
+      (setf *log-stream* (open path
+                               :direction :output
+                               :if-does-not-exist :create
+                               :if-exists :append))))
+
+(defvar *hunch-log*)
+(defun setup-web-log (path)
+  (when path
+    (let ((stream (open path
+                        :direction :output
+                        :if-does-not-exist :create
+                        :if-exists :append)))
+      (setf *hunch-log* stream)
+      (setf (hunchentoot:acceptor-access-log-destination
+             *acceptor*) *hunch-log*)
+      (setf (hunchentoot:acceptor-message-log-destination
+             *acceptor*) *hunch-log*))))
+
+;; Setup logging
+(setf vom:*log-hook*
+  (lambda (level package package-level)
+    (declare (ignore level package-level package))
+    (values t *standard-output* *log-stream*)))
 
 ;; Start app
 (defun start (&optional conf-file)
@@ -119,5 +149,9 @@
         (progn
           (read-config conf-file)
           (start-web (conf-web-port *config*))
-          (start-logging (conf-servers *config*)))
-        (log-fmt "Config not found, doing nothing."))))
+          (start-logging (conf-servers *config*))
+          (create-log-file (conf-log-path *config*))
+          (vom:config t :info)
+          ;; Setup hunchentoot logging
+          (setup-web-log (conf-web-log *config*)))
+        (vom:info "Config not found, doing nothing."))))

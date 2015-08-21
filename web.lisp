@@ -154,9 +154,3 @@ and return these names."
 		    :document-root
 		    (asdf:system-relative-pathname "zoglog" "www/")))
   (hunchentoot:start *acceptor*))
-
-(let ((testparams '(("a" . "1") ("b" . "3") ("c" . "sndk7&"))))
-  (reduce #'(lambda (url params)
-              (url-rewrite:add-get-param-to-url url (car params) (car params)))
-          testparams
-          :initial-value "http://test.ru"))

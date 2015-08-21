@@ -12,10 +12,10 @@
 	       #:hunchentoot
                #:bordeaux-threads
                #:url-rewrite
-	       #:djula)
+	       #:djula
+               #:vom)
   :components ((:file "package")
                (:file "utils")
-               (:file "logging")
                (:file "database")
                (:file "data")
                (:file "parser")

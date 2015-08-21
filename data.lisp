@@ -96,7 +96,7 @@
   (:documentation  "Process received message."))
 
 (defmethod process ((msg irc-message))
-  (log-fmt "~a" msg))
+  (vom:debug "~a" msg))
 
 (defgeneric save-p (irc-message)
   (:documentation  "Check if message must be saved."))
