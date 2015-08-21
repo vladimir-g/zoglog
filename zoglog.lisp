@@ -18,7 +18,7 @@
 
 (defun restart-message-parse-error (c)
   "Invoke CONTINUE restart on message parsing error."
-  (if (and (slot-exists c 'raw) (slot-boundp c 'raw))
+  (if (and (slot-exists-p c 'raw) (slot-boundp c 'raw))
       (log-fmt "Parse error: ~a, line: ~a" c (raw c))
       (log-fmt "Stream error: ~a" c))
   (invoke-restart 'continue))
