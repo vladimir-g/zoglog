@@ -5,7 +5,8 @@
    :servers ((:server "localhost"
 		      :port 6667
 		      :nick "test"
-		      :channels ("test1" "test2")))
+		      :channels ("test1" "test2")
+		      :extra ("PRIVMSG NickServ :IDENTIFY somepassword")))
    ;; Optinal
    ;; Hunchentoot listen port
    :web-port 4242

@@ -85,7 +85,7 @@
                (sleep *reconnect-timeout*))
            (restart-loop () nil)))))
 
-(defvar *logger-threads*)
+(defvar *logger-threads* nil)
 
 (defun start-logging (servers)
   "Start logger for each server in config plist."
@@ -105,7 +105,7 @@
 					   (getf server :server))))))
 
 ;; Config
-(defvar *config*)
+(defvar *config* nil)
 (defstruct conf
   servers
   web-port
@@ -123,19 +123,30 @@
 
 (defvar *log-stream* nil)
 (defun create-log-file (path)
+  "Create log file. CCL version requires lock for multithreading."
   (if path
-      (setf *log-stream* (open path
-                               :direction :output
-                               :if-does-not-exist :create
-                               :if-exists :append))))
+      #+ccl (setf *log-stream*
+		  (open path :sharing :lock
+			:direction :output
+			:if-does-not-exist :create
+			:if-exists :append))
+      #-ccl (setf *log-stream* (open path
+				     :direction :output
+				     :if-does-not-exist :create
+				     :if-exists :append))))
 
 (defvar *hunch-log* nil)
 (defun setup-web-log (path)
   (when path
-    (let ((stream (open path
-                        :direction :output
-                        :if-does-not-exist :create
-                        :if-exists :append)))
+    (let ((stream #-ccl (open path
+			      :direction :output
+			      :if-does-not-exist :create
+			      :if-exists :append)
+		  #+ccl (open path
+			      :sharing :lock
+			      :direction :output
+			      :if-does-not-exist :create
+			      :if-exists :append)))
       (setf *hunch-log* stream)
       (setf (hunchentoot:acceptor-access-log-destination
              *acceptor*) *hunch-log*)
@@ -181,9 +192,9 @@
     (if (probe-file conf-file)
         (progn
           (read-config conf-file)
+          (create-log-file (conf-log-path *config*))
 	  (setup-database *config*)
           (start-logging (conf-servers *config*))
-          (create-log-file (conf-log-path *config*))
           ;; Setup hunchentoot logging
 	  (start-web (conf-web-port *config*))
           (setup-web-log (conf-web-log *config*)))

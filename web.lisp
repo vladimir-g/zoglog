@@ -144,7 +144,7 @@ and return these names."
                                   :newer-link newer-link
                                   :older-link older-link))))))
 
-(defvar *acceptor*)
+(defvar *acceptor* nil)
 
 (defun start-web (&optional (port 4242))
   "Start logger web interface."
