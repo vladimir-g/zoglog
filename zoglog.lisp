@@ -194,12 +194,14 @@
           (read-config conf-file)
           (create-log-file (conf-log-path *config*))
 	  (setup-database *config*)
+	  (init-db)
           (start-logging (conf-servers *config*))
           ;; Setup hunchentoot logging
 	  (start-web (conf-web-port *config*))
           (setup-web-log (conf-web-log *config*)))
 	(progn
 	  (vom:info "Config not found.")
+	  (init-db)
 	  (start-web)))))
 
 (defun stop ()
