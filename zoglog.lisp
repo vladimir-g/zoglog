@@ -113,7 +113,7 @@
   (with-open-file (in path)
     (setf *config* (read in))))
 
-(defvar *log-stream*)
+(defvar *log-stream* nil)
 (defun create-log-file (path)
   (if path
       (setf *log-stream* (open path
@@ -121,7 +121,7 @@
                                :if-does-not-exist :create
                                :if-exists :append))))
 
-(defvar *hunch-log*)
+(defvar *hunch-log* nil)
 (defun setup-web-log (path)
   (when path
     (let ((stream (open path
@@ -134,11 +134,28 @@
       (setf (hunchentoot:acceptor-message-log-destination
              *acceptor*) *hunch-log*))))
 
+
+(defmacro add-post (fun-name &body body)
+  "Advise function, thanks to http://stackoverflow.com/a/5409823"
+  (let ((orig (gensym)))
+    `(let ((,orig (fdefinition ,fun-name))) 
+       (setf (fdefinition ,fun-name) (lambda (&rest args)
+                                       (apply ,orig args)
+                                       ,@body)))))
+
+;; Flush file log after write. Maybe this isn't very good for
+;; performance.
+(add-post 'vom::do-log
+  (if *log-stream*
+      (finish-output *log-stream*)))
+
 ;; Setup logging
 (setf vom:*log-hook*
   (lambda (level package package-level)
     (declare (ignore level package-level package))
-    (values t *standard-output* *log-stream*)))
+    (if *log-stream*
+	(values t *standard-output* *log-stream*)
+	(values t *standard-output*))))
 
 ;; Start app
 (defun start (&optional conf-file)
