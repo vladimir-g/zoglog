@@ -106,7 +106,15 @@
 
 ;; Config
 (defvar *config*)
-(defstruct conf servers web-port log-path web-log)
+(defstruct conf
+  servers
+  web-port
+  log-path
+  web-log
+  database-user
+  database-password
+  database-name
+  database-host)
 
 (defun read-config (path)
   "Read config struct from file."
@@ -157,6 +165,13 @@
 	(values t *standard-output* *log-stream*)
 	(values t *standard-output*))))
 
+;; Setup database if config provided
+(defun setup-database (config)
+  (setf *database-name* (conf-database-name config))
+  (setf *database-user* (conf-database-user config))
+  (setf *database-host* (conf-database-host config))
+  (setf *database-password* (conf-database-password config)))
+
 ;; Start app
 (defun start (&optional conf-file)
   (let ((default-conf (asdf:system-relative-pathname "zoglog" "config.lisp")))
@@ -166,6 +181,7 @@
     (if (probe-file conf-file)
         (progn
           (read-config conf-file)
+	  (setup-database *config*)
           (start-logging (conf-servers *config*))
           (create-log-file (conf-log-path *config*))
           ;; Setup hunchentoot logging

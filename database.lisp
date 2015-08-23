@@ -6,11 +6,10 @@
 (defvar *database-user* "zoglog")
 (defvar *database-password* "zoglog")
 (defvar *database-host* "localhost")
-(defvar *db* '(*default-database* *database-user* *database-password* "localhost" :pooled-p t))
 
 (defmacro with-db (&body body)
   `(postmodern:with-connection
-       `(,*database-name* ,*database-user* ,*database-password* ,*database-host* :pooled-p t)
+       `(*database-name* *database-user* *database-password* *database-host* :pooled-p t)
      ,@body))
 
 (defclass event ()
