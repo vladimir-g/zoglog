@@ -162,16 +162,18 @@
   (let ((default-conf (asdf:system-relative-pathname "zoglog" "config.lisp")))
     (unless conf-file
       (setf conf-file default-conf))
+    (vom:config t :info)
     (if (probe-file conf-file)
         (progn
           (read-config conf-file)
-          (start-web (conf-web-port *config*))
           (start-logging (conf-servers *config*))
           (create-log-file (conf-log-path *config*))
-          (vom:config t :info)
           ;; Setup hunchentoot logging
+	  (start-web (conf-web-port *config*))
           (setup-web-log (conf-web-log *config*)))
-        (vom:info "Config not found, doing nothing."))))
+	(progn
+	  (vom:info "Config not found.")
+	  (start-web)))))
 
 (defun stop ()
   "Stop all threads."
