@@ -107,6 +107,8 @@ and return these names."
         (setf date-from (convert-date date-from)))
       (when date-to
         (setf date-to (convert-date date-to)))
+      (when nick
+        (setf nick (string-trim " " nick)))
 
       (let* ((sort (if from-id 'asc 'desc))
              (messages (get-log-records
