@@ -22,6 +22,11 @@
         <input type="text" class="form-control" id="message" name="message"
                placeholder="Message" value="{{ message }}">
       </div>
+      <div class="form-group">
+        <label class="sr-only" for="limit">Limit</label>
+        <input type="number" class="form-control" id="limit" name="limit"
+               min="1" max="{{ max-limit }}" placeholder="Limit" value="{% if limit != default-limit %}{{ limit }}{% endif %}">
+      </div>
 
       <div class="btn-group btn-group-sm" role="group" aria-label="filter">
         <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Search</button>

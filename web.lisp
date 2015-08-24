@@ -141,6 +141,8 @@ and return these names."
                                   :date-from date-from
                                   :date-to date-to
                                   :limit limit
+				  :max-limit *log-display-limit*
+				  :default-limit *default-log-limit*
                                   :newer-link newer-link
                                   :older-link older-link))))))
 
