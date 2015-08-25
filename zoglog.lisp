@@ -189,6 +189,7 @@
     (unless conf-file
       (setf conf-file default-conf))
     (vom:config t :info)
+    (hunchentoot:reset-session-secret)
     (if (probe-file conf-file)
         (progn
           (read-config conf-file)
