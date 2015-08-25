@@ -15,6 +15,31 @@
 	<div class="navbar-header">
 	  <a href="/" class="navbar-brand">ZOGLOG</a>
 	</div>
+
+        <form class="navbar-form navbar-right"
+              action="/set-timezone/">
+              <input type="hidden" name="return-path" value="{{ current-url }}" />
+              <div class="input-group">
+                <span class="input-group-addon" title="Timezone">
+                  <span class="glyphicon glyphicon-time"></span>
+                </span>
+                <select class="form-control" name="timezone"
+                        autocomplete="off">
+                        {% for zone in timezones %}
+                          <option value="{{ zone }}"
+                                  {% if selected-tz == zone %}selected="selected"{% endif %}>
+                                  {{ zone }}</option>
+                                {% endfor %}
+                </select>
+                <span class="input-group-btn">
+                  <button class="btn btn-default" type="submit"
+                          title="Set timezone">
+                          <span class="glyphicon glyphicon-ok"></span>
+                  </button>
+                </span>
+              </div>
+        </form>
+
       </div>
     </nav>
 

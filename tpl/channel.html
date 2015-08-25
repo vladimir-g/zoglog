@@ -56,8 +56,8 @@
 	   {% if message.message-type == "KICK" %} class="danger"{% endif %}>
 	   
 	   <td class="text-nowrap">
-	     <a id="msg-{{message.id }}" href="#msg-{{ message.id }}">
-	       <small>{{ message.date|datetime:(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2)) }}</small>
+	     <a id="msg-{{ message.id }}" href="#msg-{{ message.id }}">
+	       <small>{{ message.date-formatted }}</small>
 	     </a>
 	   </td>
 

@@ -7,14 +7,32 @@
 (defparameter +main.html+ (djula:compile-template* "main.html"))
 (defparameter +channel.html+ (djula:compile-template* "channel.html"))
 
-;;; Handlers
+(defun get-selected-tz (session)
+  "Get selected timezone name from session or default."
+  (let ((session-tz (hunchentoot:session-value 'timezone session)))
+    (if session-tz
+        session-tz
+        *default-tz*)))
 
+;;; Handlers
 (defun return-404 ()
   (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+))
 
 (hunchentoot:define-easy-handler (main :uri "/") ()
   "Main page, display list of channels with servers."
-  (djula:render-template* +main.html+ nil :channels (get-all-channels)))
+    (djula:render-template* +main.html+ nil
+                            :channels (get-all-channels)
+                            :timezones +timezone-names+
+                            :current-url (hunchentoot:request-uri*)
+                            :selected-tz (get-selected-tz
+                                          (hunchentoot:start-session))))
+
+(hunchentoot:define-easy-handler (set-timezone :uri "/set-timezone/")
+    (timezone return-path)
+  "Save selected timezone to session and redirect user back."
+  (when (find timezone +timezone-names+ :test #'equal)
+    (setf (hunchentoot:session-value 'timezone) timezone))
+  (hunchentoot:redirect return-path))
 
 (defun match-channel (request)
   "Check if url matches scheme /channel/:server-name/:channel-name/
@@ -25,10 +43,11 @@ and return these names."
     (declare (ignore str))
     match))
 
-
-(defun convert-date (string)
+(defun convert-date (string tz-offset)
   "Convert STRING to local-time timestamp or nil."
-  (local-time:parse-timestring string :fail-on-error nil))
+  (local-time:parse-timestring string
+                               :offset tz-offset
+                               :fail-on-error nil))
 
 (defun generate-pager-link (url query &optional additional)
   "Generate link to page."
@@ -96,57 +115,65 @@ and return these names."
       (unless (channel-exists-p server channel)
         (return-404)
         (return-from channel-log nil))
-      (setf channel (format nil "#~a" channel))
+      (let* ((channel (format nil "#~a" channel))
+             (tz (get-selected-tz (hunchentoot:start-session)))
+             (tz-offset (get-offset tz))
+             (lt-tz (local-time::%make-simple-timezone tz tz tz-offset)))
+        ;; Validate filter parameters
+        (if limit
+            (when (> limit *log-display-limit*)
+              (setf limit *log-display-limit*))
+            (setf limit *default-log-limit*))
+        (when date-from
+          (setf date-from (convert-date date-from tz-offset)))
+        (when date-to
+          (setf date-to (convert-date date-to tz-offset)))
+        (when nick
+          (setf nick (string-trim " " nick)))
 
-      ;; Validate filter parameters
-      (if limit
-          (when (> limit *log-display-limit*)
-            (setf limit *log-display-limit*))
-          (setf limit *default-log-limit*))
-      (when date-from
-        (setf date-from (convert-date date-from)))
-      (when date-to
-        (setf date-to (convert-date date-to)))
-      (when nick
-        (setf nick (string-trim " " nick)))
-
-      (let* ((sort (if from-id 'asc 'desc))
-             (messages (get-log-records
-                        :server server
-                        :channel channel
-                        :host host
-                        :nick nick
-                        :message message
-                        :date-from date-from
-                        :date-to date-to
-                        :to-id to-id
-                        :from-id from-id
-                        :limit (+ limit 1)
-                        :sort sort))
-             (messages-list (slice-list messages 0 limit)))
-        (multiple-value-bind (newer-link older-link)
-            (get-pager-links :request hunchentoot:*request*
-                             :from-id from-id
-                             :to-id to-id
-                             :messages messages
-                             :limit limit)
-          (if (eq sort 'desc)
-              (setf messages-list (nreverse messages-list)))
-          (djula:render-template* +channel.html+
-                                  nil
-                                  :messages messages-list
-                                  :server server
-                                  :channel channel
-                                  :host host
-                                  :nick nick
-                                  :message message
-                                  :date-from date-from
-                                  :date-to date-to
-                                  :limit limit
-				  :max-limit *log-display-limit*
-				  :default-limit *default-log-limit*
-                                  :newer-link newer-link
-                                  :older-link older-link))))))
+        (let* ((sort (if from-id 'asc 'desc))
+               (messages (get-log-records
+                          :server server
+                          :channel channel
+                          :host host
+                          :nick nick
+                          :message message
+                          :date-from date-from
+                          :date-to date-to
+                          :to-id to-id
+                          :from-id from-id
+                          :limit (+ limit 1)
+                          :sort sort))
+               ;; Slice list to limit and format dates
+               (messages-list (mapcar #'(lambda (e) (format-date e lt-tz) e)
+                                      (slice-list messages 0 limit))))
+          (multiple-value-bind (newer-link older-link)
+              (get-pager-links :request hunchentoot:*request*
+                               :from-id from-id
+                               :to-id to-id
+                               :messages messages
+                               :limit limit)
+            (if (eq sort 'desc)
+                (setf messages-list (nreverse messages-list)))
+            (djula:render-template* +channel.html+
+                                    nil
+                                    :messages messages-list
+                                    :server server
+                                    :channel channel
+                                    :host host
+                                    :nick nick
+                                    :message message
+                                    :date-from date-from
+                                    :date-to date-to
+                                    :limit limit
+                                    :max-limit *log-display-limit*
+                                    :default-limit *default-log-limit*
+                                    :current-url (hunchentoot:request-uri*)
+                                    :timezones +timezone-names+
+                                    :selected-tz tz
+                                    :localtime-tz lt-tz
+                                    :newer-link newer-link
+                                    :older-link older-link)))))))
 
 (defvar *acceptor* nil)
 

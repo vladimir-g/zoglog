@@ -47,3 +47,43 @@
 (defun last-but-one (lst)
   "Get last but one element from list."
   (first (rest (reverse lst))))
+
+;; Timezones
+(defun get-offset-from-zone (zone)
+  "Calculate offset in seconds for ZONE string like '+12:20' or '-02:00'."
+  (let* ((sign (if (equal (char zone 0) #\-) #'- #'+))
+         (splitted (split-sequence #\: zone))
+         (hours (parse-integer (string-trim "+-" (car splitted))))
+         (minutes (parse-integer (cadr splitted))))
+    (funcall sign (+ (* hours 3600) (* minutes 60)))))
+
+(defun make-timezones (&rest zones)
+  "Create hash with timezones with strings like 'UTC +12:00' as keys
+and second offsets as values."
+  (let ((timezones (make-hash-table :test #'equal)))
+    (loop for zone in zones
+       do
+         (setf (gethash (concatenate 'string "UTC " zone) timezones)
+               (get-offset-from-zone zone)))
+    timezones))
+
+;; List of available timezones. Offsets taken from
+;; https://en.wikipedia.org/wiki/List_of_UTC_time_offsets
+(defparameter +timezones+
+  (make-timezones
+   "-12:00" "-11:00" "-10:00" "-09:30" "-09:00" "-08:00" "-07:00" "-06:00"
+   "-05:00" "-04:30" "-04:00" "-03:30" "-03:00" "-02:00" "-01:00" "+00:00"
+   "+01:00" "+02:00" "+03:00" "+03:30" "+04:00" "+04:30" "+05:00" "+05:30"
+   "+05:45" "+06:00" "+06:30" "+07:00" "+08:00" "+08:30" "+08:45" "+09:00"
+   "+09:30" "+10:00" "+10:30" "+11:00" "+11:30" "+12:00" "+12:45" "+13:00"
+   "+14:00"))
+
+(defparameter +timezone-names+
+  (loop for key being the hash-keys of +timezones+ collect key))
+
+(defvar *default-tz* "UTC +00:00")
+
+(defun get-offset (key)
+  "Get offset or zero from timezone hash."
+  (multiple-value-bind (value present) (gethash key +timezones+)
+    (if present value (gethash *default-tz* +timezones+))))
