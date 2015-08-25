@@ -23,12 +23,36 @@
       <div class="form-group">
         <label class="sr-only" for="message">Message</label>
         <input type="text" class="form-control" id="message" name="message"
-               placeholder="Message" value="{{ message }}">
+               placeholder="Message" value="{{ message }}" />
       </div>
+
+      <div class="form-group">
+        <label class="sr-only" for="date-from">From date:</label>
+        <div class="input-group">
+          <span class="input-group-addon" title="Timezone">
+            <span class="glyphicon glyphicon-calendar"></span>
+          </span>
+          <input type="text" class="form-control datepicker" id="date-from" name="date-from"
+		 placeholder="From: 1991-12-26T01:01:01" value="{{ date-from }}" />
+	</div>
+      </div>
+
+      <div class="form-group">
+        <label class="sr-only" for="date-to">To date:</label>
+        <div class="input-group">
+          <input type="text" class="form-control datepicker" id="date-to" name="date-to"
+		 placeholder="To: 2037-06-06T06:06:06" value="{{ date-to }}" />
+          <span class="input-group-addon" title="Timezone">
+            <span class="glyphicon glyphicon-calendar"></span>
+          </span>
+
+	</div>
+      </div>
+
       <div class="form-group">
         <label class="sr-only" for="limit">Limit</label>
         <input type="number" class="form-control" id="limit" name="limit"
-               min="1" max="{{ max-limit }}" placeholder="Limit" value="{% if limit != default-limit %}{{ limit }}{% endif %}">
+               min="1" max="{{ max-limit }}" placeholder="Limit" value="{% if limit != default-limit %}{{ limit }}{% endif %}" />
       </div>
 
       <div class="btn-group btn-group-sm" role="group" aria-label="filter">

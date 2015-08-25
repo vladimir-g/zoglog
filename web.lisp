@@ -52,6 +52,15 @@ and return these names."
                                :offset tz-offset
                                :fail-on-error nil))
 
+(defun format-search-date (date timezone)
+  "Format date for search input."
+  (if date
+      (local-time:format-timestring nil
+				    date
+				    :format +search-date-format+
+				    :timezone timezone)
+      ""))
+  
 (defun generate-pager-link (url query &optional additional)
   "Generate link to page."
   (let ((q (if additional (cons additional query) query)))
@@ -166,15 +175,18 @@ and return these names."
                                     :host host
                                     :nick nick
                                     :message message
-                                    :date-from date-from
-                                    :date-to date-to
+                                    :date-from (format-search-date
+						date-from
+						lt-tz)
+                                    :date-to (format-search-date
+					      date-to
+					      lt-tz)
                                     :limit limit
                                     :max-limit *log-display-limit*
                                     :default-limit *default-log-limit*
                                     :current-url (hunchentoot:request-uri*)
                                     :timezones +timezone-names+
                                     :selected-tz tz
-                                    :localtime-tz lt-tz
                                     :newer-link newer-link
                                     :older-link older-link)))))))
 

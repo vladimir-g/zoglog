@@ -2,9 +2,6 @@
 
 (in-package #:zoglog)
 
-(defparameter +display-date-format+
-  `(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2)))
-
 (defvar *database-name* "zoglog")
 (defvar *database-user* "zoglog")
 (defvar *database-password* "zoglog")

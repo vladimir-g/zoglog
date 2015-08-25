@@ -92,3 +92,8 @@ and second offsets as values."
   "Get offset or zero from timezone hash."
   (multiple-value-bind (value present) (gethash key +timezones+)
     (if present value (gethash *default-tz* +timezones+))))
+
+(defparameter +display-date-format+
+  `(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2)))
+(defparameter +search-date-format+
+  `(:year "-" (:month 2) "-" (:day 2) "T" (:hour 2) ":" (:min 2) ":" (:sec 2)))

@@ -5,3 +5,7 @@
 #limit {
     width: 8rem;
 }
+
+.rd-days th,.rd-days td {
+    padding: 1px;
+}
