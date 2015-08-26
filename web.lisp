@@ -7,6 +7,8 @@
 (defparameter +main.html+ (djula:compile-template* "main.html"))
 (defparameter +channel.html+ (djula:compile-template* "channel.html"))
 
+(setf hunchentoot:*rewrite-for-session-urls* nil)
+
 (defun get-selected-tz (session)
   "Get selected timezone name from session or default."
   (let ((session-tz (hunchentoot:session-value 'timezone session)))
