@@ -12,7 +12,11 @@
 
 (defmacro with-db (&body body)
   `(postmodern:with-connection 
-       `(,*database-name* ,*database-user* ,*database-password* ,*database-host* :pooled-p t)
+       `(,*database-name*
+         ,*database-user*
+         ,*database-password*
+         ,*database-host*
+         :pooled-p t)
      ,@body))
 
 (defclass event ()
