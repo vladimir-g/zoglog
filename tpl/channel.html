@@ -21,6 +21,13 @@
 	</div>
       </div>
       <div class="form-group">
+        <label class="sr-only" for="host">Host:</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="host" name="host"
+		 placeholder="user@hostname" value="{{ host }}" />
+	</div>
+      </div>
+      <div class="form-group">
         <label class="sr-only" for="message">Message</label>
         <input type="text" class="form-control" id="message" name="message"
                placeholder="Message" value="{{ message }}" />
@@ -29,7 +36,7 @@
       <div class="form-group">
         <label class="sr-only" for="date-from">From date:</label>
         <div class="input-group">
-          <span class="input-group-addon" title="Timezone">
+          <span class="input-group-addon">
             <span class="glyphicon glyphicon-calendar"></span>
           </span>
           <input type="text" class="form-control datepicker" id="date-from" name="date-from"
@@ -42,7 +49,7 @@
         <div class="input-group">
           <input type="text" class="form-control datepicker" id="date-to" name="date-to"
 		 placeholder="To: 2037-06-06T06:06:06" value="{{ date-to }}" />
-          <span class="input-group-addon" title="Timezone">
+          <span class="input-group-addon">
             <span class="glyphicon glyphicon-calendar"></span>
           </span>
 
@@ -56,8 +63,8 @@
       </div>
 
       <div class="btn-group btn-group-sm" role="group" aria-label="filter">
-        <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Search</button>
-        <button type="reset" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span> Reset</button>
+        <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span></button>
+        <a class="btn btn-danger" href="{{ newest-url }}"><span class="glyphicon glyphicon-remove"></span></a>
       </div>
 
     </form>

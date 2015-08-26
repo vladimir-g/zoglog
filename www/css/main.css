@@ -2,10 +2,20 @@
     word-break: break-word;
 }
 
-#limit {
-    width: 8rem;
-}
-
 .rd-days th,.rd-days td {
     padding: 1px;
+}
+
+@media (min-width: 768px) {
+    #limit {
+	width: 8rem;
+    }
+
+    #nick {
+	width: 15rem;
+    }
+
+    #host {
+       width: 13rem;
+    }
 }

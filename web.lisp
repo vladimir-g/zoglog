@@ -185,6 +185,7 @@ and return these names."
                                     :max-limit *log-display-limit*
                                     :default-limit *default-log-limit*
                                     :current-url (hunchentoot:request-uri*)
+				    :newest-url (hunchentoot:script-name*)
                                     :timezones +timezone-names+
                                     :selected-tz tz
                                     :newer-link newer-link
