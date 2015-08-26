@@ -7,7 +7,7 @@ Lisp that can log multiple channels on different servers. Web
 interface served via Hunchentoot_, logs stored in PostgreSQL using
 Postmodern_ library.
 
-ZOGLOG was tested on SBCL and Clozure CL, but may work on another Lisp
+ZOGLOG was tested on SBCL and Clozure CL, but may work on other Lisp
 implementations.
 
 
