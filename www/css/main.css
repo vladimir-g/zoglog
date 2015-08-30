@@ -14,6 +14,10 @@
     padding: 1px;
 }
 
+nav.paginator {
+    padding-bottom: 4px;
+}
+
 @media (min-width: 768px) {
     #limit {
 	width: 8rem;
