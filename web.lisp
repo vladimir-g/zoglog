@@ -60,6 +60,41 @@ and return these names."
 				    :format +search-date-format+
 				    :timezone timezone)
       ""))
+
+(defun construct-link (url query additional)
+  "Like generate pager link but without &amp;"
+  (let ((q (if additional (cons additional query) query)))
+    (reduce #'(lambda (url p)
+                (concatenate 'string url
+                             "&"        ;FIXME CHECK LAST
+                             (hunchentoot:url-encode (car p))
+                             "="
+                             (hunchentoot:url-encode (cdr p))))
+            q :initial-value (concatenate 'string url "?"))))
+
+(defun redirect-to-date (&key request server channel date-to nick
+                           host message skip-to)
+  "Redirect user to page with to-id is nearest to DATE."
+  (let* ((params (hunchentoot:get-parameters* request))
+         (url (hunchentoot:script-name* request))
+         (first (car (get-log-records :server server
+                                      :channel channel
+                                      :host host
+                                      :nick nick
+                                      :message message
+                                      :date-from skip-to
+                                      :date-to date-to
+                                      :limit 1
+                                      :sort 'asc)))
+         (from-id (if first
+                    (write-to-string (- (id first) 1)) ; lte, not lt
+                    ""))
+         (query (remove-if #'(lambda (i) (member (car i)
+                                                '("to-id" "from-id")
+                                                :test #'equal))
+                           params))
+         (redirect-to (construct-link url query (cons "from-id" from-id))))
+    (hunchentoot:redirect redirect-to)))
   
 (defun generate-pager-link (url query &optional additional)
   "Generate link to page."
@@ -109,13 +144,13 @@ and return these names."
       nil
       string))
 
-(hunchentoot:define-easy-handler (channel-log :uri #'match-channel
-                                              :default-request-type :get)
+(hunchentoot:define-easy-handler (channel-log :uri #'match-channel)
     ((date-from :parameter-type #'nullable-str)
      (date-to :parameter-type #'nullable-str)
      (nick :parameter-type #'nullable-str)
      (host :parameter-type #'nullable-str)
      (message :parameter-type #'nullable-str)
+     (skip-to-date :parameter-type #'nullable-str)
      (from-id :parameter-type 'integer)
      (to-id :parameter-type 'integer)
      (limit :parameter-type 'integer))
@@ -142,6 +177,20 @@ and return these names."
           (setf date-to (convert-date date-to tz-offset)))
         (when nick
           (setf nick (string-trim " " nick)))
+
+        ;; Process skip to date
+        (when skip-to-date
+          (setf skip-to-date (convert-date skip-to-date tz-offset))
+          (if skip-to-date
+              (return-from channel-log
+                (redirect-to-date :request hunchentoot:*request*
+                                  :server server
+                                  :channel channel
+                                  :host host
+                                  :nick nick
+                                  :message message
+                                  :date-to date-to
+                                  :skip-to skip-to-date))))
 
         (let* ((sort (if from-id 'asc 'desc))
                (messages (get-log-records

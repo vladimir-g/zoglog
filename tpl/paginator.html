@@ -1,17 +1,31 @@
 <nav>
   <ul class="pager">
     {% if older-link %}
-      <li class="previous">
+      <li>
 	<a href="{{ older-link|safe }}">
           Older <span aria-hidden="true">&larr;</span></a>
       </li>
     {% endif %}
     {% if newer-link %}
-      <li class="next">
+      <li>
 	<a href="{{ newer-link|safe }}">
           <span aria-hidden="true">&rarr;</span>
           Newer</a>
       </li>
     {% endif %}
+    <li>
+      <form class="form-inline skip-to-date-form" method="post" action="">
+        <div class="form-group">
+          <label class="sr-only" for="skip-to-date">Skip to</label>
+	  <div class="input-group input-group-sm">
+            <input type="text" class="form-control datepicker" id="skip-to-date" name="skip-to-date" placeholder="Skip to date" value="" />
+	    <span class="input-group-btn">
+              <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-share-alt"></span></button>
+            </span>
+	  </div>
+        </div>
+      </form>
+    </li>
+
   </ul>
 </nav>

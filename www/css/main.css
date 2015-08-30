@@ -2,6 +2,10 @@
     word-break: break-word;
 }
 
+.skip-to-date-form {
+    display: inline;
+}
+
 .rd-days th,.rd-days td {
     padding: 1px;
 }

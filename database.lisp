@@ -1,4 +1,4 @@
-;;; Database interaction
+;; Database interaction
 
 (in-package #:zoglog)
 
