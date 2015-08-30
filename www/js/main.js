@@ -11,7 +11,9 @@ ready(function () {
     [].forEach.call(inputs, function (input) {
 	rome(input, {
 	    inputFormat: "YYYY-MM-DDTHH:mm:ss",
-	    weekStart: 1
+	    weekStart: 1,
+	    min: input.dataset.min,
+	    max: input.dataset.max
 	});
     });
 });

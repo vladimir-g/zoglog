@@ -7,7 +7,11 @@
     <div class="form-group">
       <label class="sr-only" for="skip-to-date">Skip to</label>
       <div class="input-group input-group-sm">
-        <input type="text" class="form-control datepicker" id="skip-to-date" name="skip-to-date" placeholder="Skip to date" value="" />
+        <input type="text" class="form-control datepicker"
+	       data-min="{{ date-from }}"
+	       data-max="{{ date-to }}"
+	       id="skip-to-date" name="skip-to-date"
+	       placeholder="Skip to date" value="" />
 	<span class="input-group-btn">
           <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-share-alt"></span></button>
         </span>
