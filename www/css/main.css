@@ -6,6 +6,10 @@
     display: inline;
 }
 
+.rd-container {
+    z-index: 5;
+}
+
 .rd-days th,.rd-days td {
     padding: 1px;
 }
