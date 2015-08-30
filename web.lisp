@@ -10,11 +10,11 @@
 (setf hunchentoot:*rewrite-for-session-urls* nil)
 (setf hunchentoot:*session-max-time* 86400)
 
-(defun get-selected-tz (session)
-  "Get selected timezone name from session or default."
-  (let ((session-tz (hunchentoot:session-value 'timezone session)))
-    (if session-tz
-        session-tz
+(defun get-selected-tz (request)
+  "Get selected timezone name from cookie or default."
+  (let ((selected-tz (hunchentoot:cookie-in "zoglog-tz" request)))
+    (if selected-tz
+        (hunchentoot:url-decode selected-tz)
         *default-tz*)))
 
 ;;; Handlers
@@ -28,13 +28,16 @@
                             :timezones +timezone-names+
                             :current-url (hunchentoot:request-uri*)
                             :selected-tz (get-selected-tz
-                                          (hunchentoot:start-session))))
+                                          hunchentoot:*request*)))
 
 (hunchentoot:define-easy-handler (set-timezone :uri "/set-timezone/")
     (timezone return-path)
-  "Save selected timezone to session and redirect user back."
+  "Save selected timezone to cookie and redirect user back."
   (when (find timezone +timezone-names+ :test #'equal)
-    (setf (hunchentoot:session-value 'timezone) timezone))
+    (hunchentoot:set-cookie "zoglog-tz"
+			    :value (hunchentoot:url-encode timezone)
+			    :path "/"
+			    :max-age 31536000))
   (hunchentoot:redirect return-path))
 
 (defun match-channel (request)
@@ -163,7 +166,7 @@ and return these names."
         (return-404)
         (return-from channel-log nil))
       (let* ((channel (format nil "#~a" channel))
-             (tz (get-selected-tz (hunchentoot:start-session)))
+             (tz (get-selected-tz hunchentoot:*request*))
              (tz-offset (get-offset tz))
              (lt-tz (local-time::%make-simple-timezone tz tz tz-offset)))
         ;; Validate filter parameters
