@@ -18,6 +18,12 @@ nav.paginator {
     padding-bottom: 4px;
 }
 
+.skip-to-date-form {
+    display: inline-block;
+    margin-bottom: 0px;
+    vertical-align: middle;
+}
+
 @media (min-width: 768px) {
     #limit {
 	width: 8rem;

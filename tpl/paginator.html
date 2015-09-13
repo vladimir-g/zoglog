@@ -1,25 +1,33 @@
 <nav class="text-center paginator">
-  {% if older-link %}
-    <a class="btn btn-sm btn-default" title="Older" href="{{ older-link|safe }}"><span class="glyphicon glyphicon-arrow-left"></span></a>
-  {% endif %}
+  {# <div class="row"> #}
+  {#   <div class="col-md-1 col-xs-2"> #}
+    {% if older-link %}
+      <a class="btn btn-sm btn-default" title="Older" href="{{ older-link|safe }}"><span class="glyphicon glyphicon-arrow-left"></span></a>
+    {% endif %}
+    {# </div> #}
 
-  <form class="form-inline skip-to-date-form" method="post" action="">
-    <div class="form-group">
-      <label class="sr-only" for="skip-to-date">Skip to</label>
-      <div class="input-group input-group-sm">
-        <input type="text" class="form-control datepicker"
-	       data-min="{{ date-from }}"
-	       data-max="{{ date-to }}"
-	       id="skip-to-date" name="skip-to-date"
-	       placeholder="Skip to date" value="" />
-	<span class="input-group-btn">
-          <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-share-alt"></span></button>
-        </span>
+    {# <div class="col-md-3 col-xs-6"> #}
+    <form class="form-inline skip-to-date-form" method="post" action="">
+      <div class="form-group">
+	<label class="sr-only" for="skip-to-date">Skip to</label>
+	<div class="input-group input-group-sm">
+          <input type="text" class="form-control datepicker"
+		 data-min="{{ date-from }}"
+		 data-max="{{ date-to }}"
+		 id="skip-to-date" name="skip-to-date"
+		 placeholder="Skip to date" value="" />
+		 <span class="input-group-btn">
+		   <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-share-alt"></span></button>
+		 </span>
+	</div>
       </div>
-    </div>
-  </form>
+    </form>
+    {# </div> #}
 
-  {% if newer-link %}
-    <a class="btn btn-sm btn-default" title="Newer" href="{{ newer-link|safe }}"><span class="glyphicon glyphicon-arrow-right"></span></a>
-  {% endif %}
+    {# <div class="col-md-1 col-xs-2"> #}
+    {% if newer-link %}
+      <a class="btn btn-sm btn-default" title="Newer" href="{{ newer-link|safe }}"><span class="glyphicon glyphicon-arrow-right"></span></a>
+    {% endif %}
+    {# </div> #}
+  {# </div> #}
 </nav>
