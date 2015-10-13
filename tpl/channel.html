@@ -74,7 +74,7 @@
     <thead>
       <tr>
 	<th class="col-lg-1">Date</th>
-	<th class="col-lg-1 col-md-1 col-sm-1 text-right">Nick</th>
+	<th class="col-lg-1 col-md-1 col-sm-1 text-right nick-col">Nick</th>
 	<th>Message</th>
       </tr>
     </thead>
@@ -86,13 +86,13 @@
 	   {% if message.message-type == "ACTION" %} class="warning"{% endif %}
 	   {% if message.message-type == "KICK" %} class="danger"{% endif %}>
 	   
-	   <td class="text-nowrap">
+	   <td class="date-cell">
 	     <a id="msg-{{ message.id }}" href="#msg-{{ message.id }}">
 	       <small>{{ message.date-formatted }}</small>
 	     </a>
 	   </td>
 
-	   <td class="text-right">
+	   <td class="text-right nick-cell">
 	     {% if message.message-type == "PRIVMSG" or message.message-type == "NOTICE" %}
 	       <strong>{{ message.nick }}</strong>
 	     {% endif %}
@@ -102,6 +102,7 @@
 	       {% if message.message-type == "ACTION" %}
 		 <strong>{{ message.nick }}</strong> {{ message.message }}
 	       {% else %}
+                 <strong class="message-nick">{{ message.nick }}<br /></strong>
 		 {{ message.message }}
 	       {% endif %}
 	     {% else %}
