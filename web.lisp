@@ -64,17 +64,6 @@ and return these names."
 				    :timezone timezone)
       ""))
 
-(defun construct-link (url query additional)
-  "Like generate pager link but without &amp;"
-  (let ((q (if additional (cons additional query) query)))
-    (reduce #'(lambda (url p)
-                (concatenate 'string url
-                             "&"        ;FIXME CHECK LAST
-                             (hunchentoot:url-encode (car p))
-                             "="
-                             (hunchentoot:url-encode (cdr p))))
-            q :initial-value (concatenate 'string url "?"))))
-
 (defun redirect-to-date (&key request server channel date-to nick
                            host message skip-to)
   "Redirect user to page with to-id is nearest to DATE."
@@ -96,16 +85,10 @@ and return these names."
                                                 '("to-id" "from-id")
                                                 :test #'equal))
                            params))
-         (redirect-to (construct-link url query (cons "from-id" from-id))))
+         (redirect-to (create-url url
+                                  (cons (cons "from-id" from-id) query))))
     (hunchentoot:redirect redirect-to)))
   
-(defun generate-pager-link (url query &optional additional)
-  "Generate link to page."
-  (let ((q (if additional (cons additional query) query)))
-    (reduce #'(lambda (url p)
-                (url-rewrite:add-get-param-to-url url (car p) (cdr p)))
-            q :initial-value url)))
-
 (defun get-pager-links (&key request to-id from-id messages limit)
   "Get links to next and previous pages"
   (when (/= (length messages) 0)
@@ -125,18 +108,18 @@ and return these names."
           ;; Moving from older to newer
           (progn
             (when has-next
-              (setf newer-link (generate-pager-link
-                                url query (cons "from-id" last-id))))
-            (setf older-link (generate-pager-link
-                              url query (cons "to-id" first-id))))
+              (setf newer-link (create-url
+                                url (cons (cons "from-id" last-id)query))))
+            (setf older-link (create-url
+                              url (cons (cons "to-id" first-id) query))))
           ;; Moving backwards, from newer to older
           (progn
             (when has-next
-              (setf older-link (generate-pager-link
-                                url query (cons "to-id" last-id))))
+              (setf older-link (create-url
+                                url (cons (cons "to-id" last-id) query))))
             (when to-id
-              (setf newer-link (generate-pager-link
-                                url query (cons "from-id" first-id))))))
+              (setf newer-link (create-url
+                                url (cons (cons "from-id" first-id) query))))))
       (values newer-link older-link))))
 
 ;; Maximum log entries on one page

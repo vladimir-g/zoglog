@@ -11,7 +11,6 @@
 	       #:local-time
 	       #:hunchentoot
                #:bordeaux-threads
-               #:url-rewrite
 	       #:djula
                #:vom)
   :components ((:file "package")

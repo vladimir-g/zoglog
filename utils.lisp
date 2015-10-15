@@ -70,6 +70,20 @@ and second offsets as values."
                (get-offset-from-zone zone)))
     timezones))
 
+(defun create-url (base &optional query)
+  "Generate url with encoded query string"
+  (flet ((encode-params (pair)
+           (concatenate 'string
+                        (hunchentoot:url-encode (car pair))
+                        "="
+                        (hunchentoot:url-encode (cdr pair)))))
+    (concatenate 'string
+                 base
+                 (if (search "?" base) "&" "?")
+                 (format nil
+                         "~{~a~^&~}"
+                         (mapcar #'encode-params query)))))
+
 ;; List of available timezones. Offsets taken from
 ;; https://en.wikipedia.org/wiki/List_of_UTC_time_offsets
 

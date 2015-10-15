@@ -77,7 +77,8 @@
                                 (progn
                                   (setf nick (concatenate 'string nick "-"))
                                   (set-nick stream nick)
-                                  (send-cmd stream "JOIN ~{#~a~^,~}" channels)))))))
+                                  (send-cmd stream "JOIN ~{#~a~^,~}"
+                                            channels)))))))
                  (close stream)
                  (usocket:socket-close socket))
                ;; Do-loop ends when socket disconnected, reconnect after
