@@ -212,3 +212,12 @@
                  (postmodern:sql 'date)
                  (postmodern:sql (:desc 'date)))))
       limit))))
+
+(defun get-nicks (&key server channel)
+  (with-db
+    (postmodern:query (:order-by (:select 'nick :distinct
+                                          :from 'events
+                                          :where (:and (:= 'server '$1)
+                                                       (:= 'channel '$2)))
+                                 'nick)
+                      server channel :column)))

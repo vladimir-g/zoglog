@@ -223,6 +223,8 @@ and return these names."
 				    :newest-url (hunchentoot:script-name*)
                                     :timezones +timezone-names+
                                     :selected-tz tz
+                                    :nicks (get-nicks :server server
+                                                      :channel channel)
                                     :newer-link newer-link
                                     :older-link older-link)))))))
 

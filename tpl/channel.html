@@ -17,7 +17,11 @@
 	<div class="input-group">
 	  <div class="input-group-addon"><span class="glyphicon glyphicon-user"></span></div>
           <input type="text" class="form-control" id="nick" name="nick"
+                 list="nicks"
 		 placeholder="Nick" value="{{ nick }}" />
+          <datalist id="nicks">
+            {% for n in nicks %}<option value="{{ n }}" />{% endfor %}
+          </datalist>
 	</div>
       </div>
       <div class="form-group">
