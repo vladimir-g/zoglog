@@ -31,13 +31,14 @@ ready(function () {
     // Show in context
     if (window.location.hash.indexOf('#msg-') === 0) {
         var row = document.querySelector(window.location.hash);
-        row.className = 'success';
-        // Move viewport to get row into view
-        var y = getOffset(row).top - 200;
-        if (y < 0)
-            y = 0;
-        document.documentElement.scrollTop = y;
-        document.body.scrollTop = y;
+        if (row !== null) {
+            row.className = 'success';
+            // Move viewport to get row into view
+            var y = getOffset(row).top - 200;
+            if (y < 0)
+                y = 0;
+            document.documentElement.scrollTop = y;
+            document.body.scrollTop = y;
+        }
     }
-
 });
