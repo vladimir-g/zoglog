@@ -145,7 +145,7 @@
                                 timestamp
                                 :timezone local-time:+utc-zone+))
 
-(defvar *default-log-limit* 100)
+(defvar *default-log-limit* 80)
 
 (defun get-log-records (&key server
                           channel
@@ -221,3 +221,17 @@
                                                        (:= 'channel '$2)))
                                  'nick)
                       server channel :column)))
+
+(defun get-context-start (&key server channel event-id size)
+  (with-db
+    (car
+     (last
+      (postmodern:query
+       (:limit (:order-by (:select 'id
+				   :from 'events
+				   :where (:and (:= 'server '$1)
+						(:= 'channel '$2)
+						(:<= 'id '$3)))
+			  (:desc 'id))
+	       size)
+       server channel event-id :column)))))

@@ -86,9 +86,27 @@ and return these names."
                                                 :test #'equal))
                            params))
          (redirect-to (create-url url
-                                  (cons (cons "from-id" from-id) query))))
+                                  (acons "from-id" from-id query))))
     (hunchentoot:redirect redirect-to)))
-  
+
+(defun show-in-context (&key request server channel id limit)
+  "Redirect user to page with to-id is nearest to DATE."
+  (let* ((from-id (get-context-start :server server
+				     :channel channel
+				     :event-id id
+				     :size (floor limit 2)))
+	 (query (if (/= limit *default-log-limit*)
+		    (list (cons "limit" (write-to-string limit)))
+		    '()))
+         (url (hunchentoot:script-name* request)))
+    (hunchentoot:redirect
+     (format nil "~a#msg-~a"
+	     (create-url url
+			 (acons "from-id"
+				(write-to-string from-id)
+				query))
+	     id))))
+
 (defun get-pager-links (&key request to-id from-id messages limit)
   "Get links to next and previous pages"
   (when (/= (length messages) 0)
@@ -109,17 +127,17 @@ and return these names."
           (progn
             (when has-next
               (setf newer-link (create-url
-                                url (cons (cons "from-id" last-id)query))))
+                                url (acons "from-id" last-id query))))
             (setf older-link (create-url
-                              url (cons (cons "to-id" first-id) query))))
+                              url (acons "to-id" first-id query))))
           ;; Moving backwards, from newer to older
           (progn
             (when has-next
               (setf older-link (create-url
-                                url (cons (cons "to-id" last-id) query))))
+                                url (acons "to-id" last-id query))))
             (when to-id
               (setf newer-link (create-url
-                                url (cons (cons "from-id" first-id) query))))))
+                                url (acons "from-id" first-id query))))))
       (values newer-link older-link))))
 
 ;; Maximum log entries on one page
@@ -139,6 +157,7 @@ and return these names."
      (skip-to-date :parameter-type #'nullable-str)
      (from-id :parameter-type 'integer)
      (to-id :parameter-type 'integer)
+     (show-in-context :parameter-type 'integer)
      (limit :parameter-type 'integer))
   "Display filtered channel log."
   (destructuring-bind (server channel)
@@ -177,6 +196,15 @@ and return these names."
                                   :message message
                                   :date-to date-to
                                   :skip-to skip-to-date))))
+
+	;; Show comment in context without filters
+        (when show-in-context
+	  (return-from channel-log
+	    (show-in-context :request hunchentoot:*request*
+			     :server server
+			     :channel channel
+			     :id show-in-context
+			     :limit limit)))
 
         (let* ((sort (if from-id 'asc 'desc))
                (messages (get-log-records
