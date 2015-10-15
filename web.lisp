@@ -17,6 +17,46 @@
         (hunchentoot:url-decode selected-tz)
         *default-tz*)))
 
+(defun convert-date (string tz-offset)
+  "Convert STRING to local-time timestamp or nil."
+  (local-time:parse-timestring string
+                               :offset tz-offset
+                               :fail-on-error nil))
+
+(defun format-search-date (date timezone)
+  "Format date for search input."
+  (if date
+      (local-time:format-timestring nil
+				    date
+				    :format +search-date-format+
+				    :timezone timezone)
+      ""))
+
+;; Template filters
+
+;; Very simple URL regex
+(defparameter +url-regex+ (cl-ppcre:create-scanner
+                           "\\b(((ftp|http)s?|file)://[^\\s]+)"))
+
+(defun replace-with-link (target-string
+                          start
+                          end
+                          match-start
+                          match-end
+                          reg-starts
+                          reg-ends)
+  "Replace link with html. TODO: url-encode href properly."
+  (declare (ignore start end reg-starts reg-ends))
+  (format nil "<a rel=\"nofollow\" href=\"~a\">~:*~a</a>"
+          (subseq target-string
+                  match-start
+                  match-end)))
+
+(djula::def-filter :linkify (it)
+   (cl-ppcre:regex-replace-all +url-regex+
+                               (hunchentoot:escape-for-html it)
+                               #'replace-with-link))
+
 ;;; Handlers
 (defun return-404 ()
   (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+))
@@ -48,21 +88,6 @@ and return these names."
                                 (hunchentoot:script-name* request))
     (declare (ignore str))
     match))
-
-(defun convert-date (string tz-offset)
-  "Convert STRING to local-time timestamp or nil."
-  (local-time:parse-timestring string
-                               :offset tz-offset
-                               :fail-on-error nil))
-
-(defun format-search-date (date timezone)
-  "Format date for search input."
-  (if date
-      (local-time:format-timestring nil
-				    date
-				    :format +search-date-format+
-				    :timezone timezone)
-      ""))
 
 (defun redirect-to-date (&key request server channel date-to nick
                            host message skip-to)

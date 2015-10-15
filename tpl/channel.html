@@ -93,7 +93,7 @@
 	    <td class="date-cell">
 	      <a rel="nofollow"
                  title="Show in unfiltered context"
-                 href="?show-in-context={{ message.id }}&limit={{ limit }}">
+                 href="?show-in-context={{ message.id }}&amp;limit={{ limit }}">
 		<small>{{ message.date-formatted }}</small>
 	      </a>
 	    </td>
@@ -109,7 +109,7 @@
 		  <strong>{{ message.nick }}</strong> {{ message.message }}
 		{% else %}
                   <strong class="message-nick" title="{{ message.host }}">{{ message.nick }}<br /></strong>
-		  {{ message.message }}
+		  {{ message.message|safe|linkify }}
 		{% endif %}
 	      {% else %}
 		<span class="text-muted">{{ message.nick }} ({{ message.host }})
