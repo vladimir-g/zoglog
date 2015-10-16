@@ -10,7 +10,7 @@
 
   <div class="well well-sm">
 
-    <form id="filter-form" class="form-inline" method="get" action="">
+    <form id="filter-form" class="form-inline" method="get" action="?">
 
       <div class="form-group">
         <label class="sr-only" for="nick">Nick</label>
@@ -20,7 +20,8 @@
                  list="nicks"
 		 placeholder="Nick" value="{{ nick }}" />
           <datalist id="nicks">
-            {% for n in nicks %}<option value="{{ n }}" />{% endfor %}
+            {% for n in nicks %}<option>{{ n }}</option>
+            {% endfor %}
           </datalist>
 	</div>
       </div>
