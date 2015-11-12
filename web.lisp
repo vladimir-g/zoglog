@@ -27,10 +27,10 @@
   "Format date for search input."
   (if date
       (local-time:format-timestring nil
-				    date
-				    :format +search-date-format+
-				    :timezone timezone)
-      ""))
+                                    date
+                                    :format +search-date-format+
+                                    :timezone timezone)
+      nil))
 
 ;; Template filters
 
@@ -75,9 +75,9 @@
   "Save selected timezone to cookie and redirect user back."
   (when (find timezone +timezone-names+ :test #'equal)
     (hunchentoot:set-cookie "zoglog-tz"
-			    :value (hunchentoot:url-encode timezone)
-			    :path "/"
-			    :max-age 31536000))
+                            :value (hunchentoot:url-encode timezone)
+                            :path "/"
+                            :max-age 31536000))
   (hunchentoot:redirect return-path))
 
 (defun match-channel (request)
@@ -89,10 +89,19 @@ and return these names."
     (declare (ignore str))
     match))
 
-(defun redirect-to-date (&key request server channel date-to nick
-                           host message skip-to)
+(defun redirect-to-date (&key request server channel date-to date-from
+                           nick host message skip-to lt-tz limit)
   "Redirect user to page with to-id is nearest to DATE."
-  (let* ((params (hunchentoot:get-parameters* request))
+  (let* ((query (list (cons "host" host)
+                      (cons "date-to" (format-search-date
+                                       date-to
+                                       lt-tz))
+                      (cons "date-from" (format-search-date
+                                         date-from
+                                         lt-tz))
+                      (cons "nick" nick)
+                      (cons "limit" (write-to-string limit))
+                      (cons "message" message)))
          (url (hunchentoot:script-name* request))
          (first (car (get-log-records :server server
                                       :channel channel
@@ -106,10 +115,6 @@ and return these names."
          (from-id (if first
                     (write-to-string (- (id first) 1)) ; lte, not lt
                     ""))
-         (query (remove-if #'(lambda (i) (member (car i)
-                                                '("to-id" "from-id")
-                                                :test #'equal))
-                           params))
          (redirect-to (create-url url
                                   (acons "from-id" from-id query))))
     (hunchentoot:redirect redirect-to)))
@@ -117,20 +122,20 @@ and return these names."
 (defun show-in-context (&key request server channel id limit)
   "Redirect user to page with to-id is nearest to DATE."
   (let* ((from-id (get-context-start :server server
-				     :channel channel
-				     :event-id id
-				     :size (floor limit 2)))
-	 (query (if (/= limit *default-log-limit*)
-		    (list (cons "limit" (write-to-string limit)))
-		    '()))
+                                     :channel channel
+                                     :event-id id
+                                     :size (floor limit 2)))
+         (query (if (/= limit *default-log-limit*)
+                    (list (cons "limit" (write-to-string limit)))
+                    '()))
          (url (hunchentoot:script-name* request)))
     (hunchentoot:redirect
      (format nil "~a#msg-~a"
-	     (create-url url
-			 (acons "from-id"
-				(write-to-string from-id)
-				query))
-	     id))))
+             (create-url url
+                         (acons "from-id"
+                                (write-to-string from-id)
+                                query))
+             id))))
 
 (defun get-pager-links (&key request to-id from-id messages limit)
   "Get links to next and previous pages"
@@ -220,16 +225,19 @@ and return these names."
                                   :nick nick
                                   :message message
                                   :date-to date-to
+                                  :date-from date-from
+                                  :lt-tz lt-tz
+                                  :limit limit
                                   :skip-to skip-to-date))))
 
-	;; Show comment in context without filters
+        ;; Show comment in context without filters
         (when show-in-context
-	  (return-from channel-log
-	    (show-in-context :request hunchentoot:*request*
-			     :server server
-			     :channel channel
-			     :id show-in-context
-			     :limit limit)))
+          (return-from channel-log
+            (show-in-context :request hunchentoot:*request*
+                             :server server
+                             :channel channel
+                             :id show-in-context
+                             :limit limit)))
 
         (let* ((sort (if from-id 'asc 'desc))
                (messages (get-log-records
@@ -264,16 +272,16 @@ and return these names."
                                     :nick nick
                                     :message message
                                     :date-from (format-search-date
-						date-from
-						lt-tz)
+                                                date-from
+                                                lt-tz)
                                     :date-to (format-search-date
-					      date-to
-					      lt-tz)
+                                              date-to
+                                              lt-tz)
                                     :limit limit
                                     :max-limit *log-display-limit*
                                     :default-limit *default-log-limit*
                                     :current-url (hunchentoot:request-uri*)
-				    :newest-url (hunchentoot:script-name*)
+                                    :newest-url (hunchentoot:script-name*)
                                     :timezones +timezone-names+
                                     :selected-tz tz
                                     :nicks (get-nicks :server server
@@ -286,8 +294,8 @@ and return these names."
 (defun start-web (&optional (port 4242))
   "Start logger web interface."
   (setf *acceptor* (make-instance
-		    'hunchentoot:easy-acceptor
-		    :port port
-		    :document-root
-		    (asdf:system-relative-pathname "zoglog" "www/")))
+                    'hunchentoot:easy-acceptor
+                    :port port
+                    :document-root
+                    (asdf:system-relative-pathname "zoglog" "www/")))
   (hunchentoot:start *acceptor*))
