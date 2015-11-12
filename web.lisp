@@ -100,7 +100,7 @@ and return these names."
                                          date-from
                                          lt-tz))
                       (cons "nick" nick)
-                      (cons "limit" (write-to-string limit))
+                      (cons "limit" (if limit (write-to-string limit)))
                       (cons "message" message)))
          (url (hunchentoot:script-name* request))
          (first (car (get-log-records :server server
@@ -227,7 +227,9 @@ and return these names."
                                   :date-to date-to
                                   :date-from date-from
                                   :lt-tz lt-tz
-                                  :limit limit
+                                  :limit (if (/= limit *default-log-limit*)
+                                             limit
+                                             nil)
                                   :skip-to skip-to-date))))
 
         ;; Show comment in context without filters
