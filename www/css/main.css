@@ -1,5 +1,7 @@
 .skip-to-date-form {
-    display: inline;
+    display: inline-block;
+    vertical-align: middle;
+    width: 18rem;
 }
 
 .rd-container {
@@ -14,14 +16,12 @@ nav.paginator {
     padding-bottom: 4px;
 }
 
-.skip-to-date-form {
-    display: inline-block;
-    margin-bottom: 0px;
-    vertical-align: middle;
-}
-
 .message-nick {
     display: none;
+}
+
+#filter-form .form-group {
+    padding: 1px;
 }
 
 @media (min-width: 768px) {
@@ -35,6 +35,13 @@ nav.paginator {
 
     #host {
        width: 13rem;
+    }
+
+}
+
+@media (max-width: 768px) {
+    .skip-to-date-form .form-group {
+	margin-bottom: 0px;
     }
 }
 
@@ -65,5 +72,13 @@ nav.paginator {
         -moz-hyphens: auto;
         -webkit-hyphens: auto;
         hyphens: auto;
+    }
+}
+
+@media (max-width: 380px) {
+    .skip-to-date-form {
+	display: block;
+	padding: 5px 0;
+	margin: auto;
     }
 }

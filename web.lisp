@@ -150,6 +150,8 @@ and return these names."
            (first-id (write-to-string (id (first messages))))
            (last-id (if has-next
                         (write-to-string (id (elt messages (- limit 1))))))
+           (newest-link url)
+           (oldest-link (create-url url (acons "from-id" "0" query)))
            (newer-link)
            (older-link))
       (if from-id
@@ -168,7 +170,7 @@ and return these names."
             (when to-id
               (setf newer-link (create-url
                                 url (acons "from-id" first-id query))))))
-      (values newer-link older-link))))
+      (values newer-link older-link newest-link oldest-link))))
 
 ;; Maximum log entries on one page
 (defvar *log-display-limit* 1000)
@@ -257,7 +259,7 @@ and return these names."
                ;; Slice list to limit and format dates
                (messages-list (mapcar #'(lambda (e) (format-date e lt-tz) e)
                                       (slice-list messages 0 limit))))
-          (multiple-value-bind (newer-link older-link)
+          (multiple-value-bind (newer-link older-link newest-link oldest-link)
               (get-pager-links :request hunchentoot:*request*
                                :from-id from-id
                                :to-id to-id
@@ -288,6 +290,10 @@ and return these names."
                                     :selected-tz tz
                                     :nicks (get-nicks :server server
                                                       :channel channel)
+                                    :newest-link newest-link
+                                    :oldest-link oldest-link
+                                    :to-id to-id
+                                    :from-id from-id
                                     :newer-link newer-link
                                     :older-link older-link)))))))
 

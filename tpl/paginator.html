@@ -1,6 +1,7 @@
 <nav class="text-center paginator">
 
-    {% if older-link %}
+    {% if older-link and from-id != 0 %}
+      <a class="btn btn-sm btn-default" title="Oldest" href="{{ oldest-link }}"><span class="glyphicon glyphicon-fast-backward"></span></a>
       <a class="btn btn-sm btn-default" title="Older" href="{{ older-link }}"><span class="glyphicon glyphicon-arrow-left"></span></a>
     {% endif %}
 
@@ -31,6 +32,9 @@
 
     {% if newer-link %}
       <a class="btn btn-sm btn-default" title="Newer" href="{{ newer-link }}"><span class="glyphicon glyphicon-arrow-right"></span></a>
+    {% endif %}
+    {% if from-id or to-id %}
+      <a class="btn btn-sm btn-default" title="Newest" href="{{ newest-link }}"><span class="glyphicon glyphicon-fast-forward"></span></a>
     {% endif %}
 
 </nav>
