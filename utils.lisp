@@ -112,3 +112,39 @@ and second offsets as values."
   `(:year "-" (:month 2) "-" (:day 2) " " (:hour 2) ":" (:min 2) ":" (:sec 2)))
 (defparameter +search-date-format+
   `(:year "-" (:month 2) "-" (:day 2) "T" (:hour 2) ":" (:min 2) ":" (:sec 2)))
+
+;; Hash table of channels with list of users
+(defvar *users-list*)
+
+;; Append new users list to *users-list* channel set
+(defun add-to-users-list (channel users)
+  (multiple-value-bind (chan exists) (gethash channel *users-list*)
+    (declare (ignore chan))
+    (unless exists
+      (setf (gethash channel *users-list*) '()))
+    (mapc #'(lambda (user)
+              (pushnew (string-left-trim '(#\@ #\+) user)
+                       (gethash channel *users-list*)
+                       :test #'string=))
+            users)))
+
+;; Remove list of users from users list
+(defun remove-from-users-list (channel users)
+  (multiple-value-bind (chan exists) (gethash channel *users-list*)
+    (declare (ignore chan))
+    (unless exists
+      (setf (gethash channel *users-list*) '()))
+    (setf (gethash channel *users-list*)
+          (set-difference (gethash channel *users-list*)
+                          (mapcar #'(lambda (user)
+                                      (string-left-trim '(#\@ #\+) user))
+                                  users)
+                          :test #'string=))))
+
+;; Find channels where user exists
+(defun find-user-channels (user)
+  (loop
+     for channel being the hash-keys of *users-list*
+     using (hash-value users)
+     when (member user users :test #'string=)
+     collect channel))

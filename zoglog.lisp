@@ -38,15 +38,16 @@
   "Run logging loop for specified server."
   (update-db-channels server channels)
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
-		 (logger-was-kicked #'restart-kicked)
+                 (logger-was-kicked #'restart-kicked)
                  (message-parse-error #'restart-message-parse-error)
-		 (stream-error #'restart-message-parse-error)
-		 (logger-was-banned #'restart-banned)
+                 (stream-error #'restart-message-parse-error)
+                 (logger-was-banned #'restart-banned)
                  (error #'restart-unknown-error))
     (loop do
          (restart-case
              (let* ((socket (usocket:socket-connect server port))
-                    (stream (usocket:socket-stream socket)))
+                    (stream (usocket:socket-stream socket))
+                    (*users-list* (make-hash-table :test #'equal)))
                (unwind-protect
                     (progn
                       (set-nick stream nick)
@@ -62,17 +63,17 @@
                             (send-pong stream line)
                             (restart-case
                                 (let ((message (parse-message line
-							      channels
-							      server
-							      nick)))
+                                                              channels
+                                                              server
+                                                              nick)))
                                   (process message)
                                   (when (save-p message)
                                       (save message)))
                               (continue () nil)
                               (join-after-kick (channel)
-				(progn
-				  (sleep 3)
-				  (send-cmd stream "JOIN ~a" channel)))
+                                (progn
+                                  (sleep 3)
+                                  (send-cmd stream "JOIN ~a" channel)))
                               (change-nick ()
                                 (progn
                                   (setf nick (concatenate 'string nick "-"))
@@ -92,19 +93,19 @@
 (defun start-logging (servers)
   "Start logger for each server in config plist."
   (setf *logger-threads*
-	(loop for server in servers
-	   collect
-	     (bt:make-thread #'(lambda ()
-				 (log-server (getf server :server)
-					     (getf server :port)
-					     (getf server :nick)
-					     (getf server :channels)
-					     (getf server :extra)))
+        (loop for server in servers
+           collect
+             (bt:make-thread #'(lambda ()
+                                 (log-server (getf server :server)
+                                             (getf server :port)
+                                             (getf server :nick)
+                                             (getf server :channels)
+                                             (getf server :extra)))
                              :initial-bindings (list (cons
                                                       '*standard-output*
                                                       *standard-output*))
-			     :name (format nil "~a-logger"
-					   (getf server :server))))))
+                             :name (format nil "~a-logger"
+                                           (getf server :server))))))
 
 ;; Config
 (defvar *config* nil)
@@ -128,27 +129,27 @@
   "Create log file. CCL version requires lock for multithreading."
   (if path
       #+ccl (setf *log-stream*
-		  (open path :sharing :lock
-			:direction :output
-			:if-does-not-exist :create
-			:if-exists :append))
+                  (open path :sharing :lock
+                        :direction :output
+                        :if-does-not-exist :create
+                        :if-exists :append))
       #-ccl (setf *log-stream* (open path
-				     :direction :output
-				     :if-does-not-exist :create
-				     :if-exists :append))))
+                                     :direction :output
+                                     :if-does-not-exist :create
+                                     :if-exists :append))))
 
 (defvar *hunch-log* nil)
 (defun setup-web-log (path)
   (when path
     (let ((stream #-ccl (open path
-			      :direction :output
-			      :if-does-not-exist :create
-			      :if-exists :append)
-		  #+ccl (open path
-			      :sharing :lock
-			      :direction :output
-			      :if-does-not-exist :create
-			      :if-exists :append)))
+                              :direction :output
+                              :if-does-not-exist :create
+                              :if-exists :append)
+                  #+ccl (open path
+                              :sharing :lock
+                              :direction :output
+                              :if-does-not-exist :create
+                              :if-exists :append)))
       (setf *hunch-log* stream)
       (setf (hunchentoot:acceptor-access-log-destination
              *acceptor*) *hunch-log*)
@@ -175,8 +176,8 @@
   (lambda (level package package-level)
     (declare (ignore level package-level package))
     (if *log-stream*
-	(values t *standard-output* *log-stream*)
-	(values t *standard-output*))))
+        (values t *standard-output* *log-stream*)
+        (values t *standard-output*))))
 
 ;; Setup database if config provided
 (defun setup-database (config)
@@ -196,16 +197,16 @@
         (progn
           (read-config conf-file)
           (create-log-file (conf-log-path *config*))
-	  (setup-database *config*)
-	  (init-db)
+          (setup-database *config*)
+          (init-db)
           (start-logging (conf-servers *config*))
           ;; Setup hunchentoot logging
-	  (start-web (conf-web-port *config*))
+          (start-web (conf-web-port *config*))
           (setup-web-log (conf-web-log *config*)))
-	(progn
-	  (vom:info "Config not found.")
-	  (init-db)
-	  (start-web)))))
+        (progn
+          (vom:info "Config not found.")
+          (init-db)
+          (start-web)))))
 
 (defun stop ()
   "Stop all threads."

@@ -113,9 +113,9 @@
 (defmacro save-instance (msg &rest rest)
   "Save IRC message with additional arguments (REST)."
   `(with-accessors ((date date)
-		    (server server)
-		    (nick nick)
-		    (host host)) ,msg
+                    (server server)
+                    (nick nick)
+                    (host host)) ,msg
      (with-db
        (postmodern:insert-dao
         (make-instance 'event
@@ -140,12 +140,17 @@
 (defmethod process ((msg numeric-message))
   (with-accessors ((code code) (args args)) msg
     (cond ((or (= code 433)              ;ERRNICKNAMEINUSE
-	       (= code 441))             ;ERRNICKCOLLISION
-	   (error 'nickname-already-in-use
-		  :text (format nil "~{~a~^ ~}" args)))
-	  ((= code 474)			;USER HAS BANNED FOR THIS POST
-	   (error 'logger-was-banned
-		  :text (format nil "~{~a~^ ~}" args)))))
+               (= code 441))             ;ERRNICKCOLLISION
+           (error 'nickname-already-in-use
+                  :text (format nil "~{~a~^ ~}" args)))
+          ((= code 474)                 ;USER HAS BANNED FOR THIS POST
+           (error 'logger-was-banned
+                  :text (format nil "~{~a~^ ~}" args)))
+          ((= code 353)                 ;RPL_NAMREPLY
+           (when (> (length args) 3)
+             (let ((channel (elt args 2))
+                   (users (split-sequence #\Space (car (slice-list args 3)))))
+               (add-to-users-list channel users))))))
   (call-next-method))
 
 ;; NICK message
@@ -164,8 +169,8 @@
 (defmethod save ((msg nick-message))
   (dolist (ch (channels msg))
     (save-instance msg :channel (format nil "#~a" ch)
-		   :message (message msg)
-		   :message-type "NICK")))
+                   :message (message msg)
+                   :message-type "NICK")))
 
 (defmethod save-p ((msg nick-message)) t)
 
@@ -185,19 +190,28 @@
   ((message
     :initarg :message
     :accessor message
-    :documentation "Message contents.")))
+    :documentation "Message contents.")
+   (quit-channels
+    :initarg :quit-channels
+    :accessor quit-channels
+    :documentation "Channels that user leaves")))
 
 (defmethod initialize-instance :after ((msg quit-message) &key)
   "Initialize message with contents."
   (with-accessors ((args args)
-                   (message message)) msg
-    (setf message (car args))))
+                   (message message)
+                   (nick nick)
+                   (channels channels)
+                   (quit-channels quit-channels)) msg
+    (setf message (car args))
+    (setf quit-channels
+          (find-user-channels nick))))
 
 (defmethod save ((msg quit-message))
-  (dolist (ch (channels msg))
-    (save-instance msg :channel (format nil "#~a" ch)
-		   :message (message msg)
-		   :message-type "QUIT")))
+  (dolist (ch (quit-channels msg))
+    (save-instance msg :channel ch
+                   :message (message msg)
+                   :message-type "QUIT")))
 
 
 (defmethod save-p ((msg quit-message)) t)
@@ -228,7 +242,7 @@
 
 (defmethod save-p ((msg channel-message))
   (when (find (string-left-trim "#" (channel msg))
-	      (channels msg) :test #'equal)
+              (channels msg) :test #'equal)
     t))
 
 (defmethod print-object ((msg channel-message) stream)
@@ -249,6 +263,11 @@
 
 (defmethod save ((msg join-message))
   (save-instance msg :channel (channel msg) :message-type "JOIN"))
+
+(defmethod process ((msg join-message))
+  (with-accessors ((nick nick) (channel channel)) msg
+    ;; Add user to channel users list
+    (add-to-users-list channel (list nick))))
 
 ;; PRIVMSG message
 
@@ -271,9 +290,9 @@
 (defmethod save ((msg privmsg-message))
   (with-accessors ((channel channel) (message message)) msg
     (save-instance msg
-		   :channel channel
-		   :message message
-		   :message-type "PRIVMSG")))
+                   :channel channel
+                   :message message
+                   :message-type "PRIVMSG")))
 
 (defmethod print-object ((msg privmsg-message) stream)
   "Print PRIVMSG object."
@@ -292,9 +311,9 @@
 (defmethod save ((msg notice-message))
   (with-accessors ((channel channel) (message message)) msg
     (save-instance msg
-		   :channel channel
-		   :message message
-		   :message-type "NOTICE")))
+                   :channel channel
+                   :message message
+                   :message-type "NOTICE")))
 
 ;; PART message
 
@@ -302,12 +321,16 @@
   ((channel
     :documentation "IRC channel which user leaves.")))
 
+(defmethod process ((msg part-message))
+  (with-accessors ((channel channel) (nick nick)) msg
+    (remove-from-users-list channel (list nick))))
+
 (defmethod save ((msg part-message))
   (with-accessors ((channel channel) (message message)) msg
     (save-instance msg
-		   :channel channel
-		   :message message
-		   :message-type "PART")))
+                   :channel channel
+                   :message message
+                   :message-type "PART")))
 
 ;; PRIVMSG ACTION
 (defclass action-message (privmsg-message)
@@ -324,9 +347,9 @@
 (defmethod save ((msg action-message))
   (with-accessors ((channel channel) (action action)) msg
     (save-instance msg
-		   :channel channel
-		   :message action
-		   :message-type "ACTION")))
+                   :channel channel
+                   :message action
+                   :message-type "ACTION")))
 
 (defmethod print-object ((msg action-message) stream)
   "Print PRIVMSG ACTION object."
