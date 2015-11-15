@@ -125,7 +125,7 @@
 		    has left channel{% if message.message %}: {{ message.message }}{% endif %}
 		  {% endif %}
 		  {% if message.message-type == "KICK" %}
-		    has been kicked{% if message.message %}: {{ message.message }}{% endif %}
+		    kicked {{ message.message }}
 		  {% endif %}
 		  {% if message.message-type == "NICK" %}
 		    is now known as <strong>{{ message.message }}</strong>

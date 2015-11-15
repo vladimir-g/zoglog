@@ -374,8 +374,6 @@
     :documentation "Who was kicked"
     :accessor user)))
 
-(defmethod save-p ((msg kick-message)) t)
-
 (defmethod initialize-instance :after ((msg kick-message) &key)
   "Initialize KICK object, parse username and message."
   (with-accessors ((message message) (user user) (args args)) msg
@@ -385,9 +383,17 @@
 (defmethod process ((msg kick-message))
   (with-accessors ((user user) (ch channel) (logger-nick logger-nick)) msg
     (call-next-method)
+    (remove-from-users-list ch (list user))
     (when (string= user logger-nick)
       (error 'logger-was-kicked
              :text ch))))
+
+(defmethod save ((msg kick-message))
+  (with-accessors ((channel channel) (user user) (message message)) msg
+    (save-instance msg
+                   :channel channel
+                   :message (format nil "~a: ~a" user message)
+                   :message-type "KICK")))
 
 (defmethod print-object ((msg kick-message) stream)
   "Print channel-type object."
@@ -398,3 +404,4 @@
             (host msg)
             (channel msg)
             (user msg))))
+
