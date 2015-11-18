@@ -29,7 +29,8 @@
    (message :accessor message
             :col-type (or postmodern:db-null text) :initarg :message)
    ;; Not columns
-   (date-formatted :accessor date-formatted :initarg :date-formatted))
+   (date-formatted :accessor date-formatted :initarg :date-formatted)
+   (nick-color :accessor nick-color :initarg :nick-color))
   (:documentation "Dao class for irc message.")
   (:metaclass postmodern:dao-class)
   (:table-name events)(:keys id))
@@ -62,6 +63,13 @@
          (local-time:universal-to-timestamp (date event))
          :format +display-date-format+
          :timezone timezone)))
+
+;; Nick colors
+(defmethod set-nick-color ((event event))
+  (multiple-value-bind (hue saturation lightness)
+      (get-nick-color (nick event))
+    (setf (nick-color event)
+          (format nil "hsl(~a, ~a%, ~a%)" hue saturation lightness))))
 
 (defun table-exists (name)
   "Check if table exists."

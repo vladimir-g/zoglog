@@ -256,8 +256,12 @@ and return these names."
                           :from-id from-id
                           :limit (+ limit 1)
                           :sort sort))
-               ;; Slice list to limit and format dates
-               (messages-list (mapcar #'(lambda (e) (format-date e lt-tz) e)
+               ;; Slice list to limit,
+               ;; format dates and addd nick colors (djula can't call methods)
+               (messages-list (mapcar #'(lambda (e)
+                                          (set-nick-color e)
+                                          (format-date e lt-tz)
+                                          e)
                                       (slice-list messages 0 limit))))
           (multiple-value-bind (newer-link older-link newest-link oldest-link)
               (get-pager-links :request hunchentoot:*request*

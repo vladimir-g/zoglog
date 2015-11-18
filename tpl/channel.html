@@ -101,7 +101,8 @@
 
 	    <td class="text-right nick-cell">
 	      {% if message.message-type == "PRIVMSG" or message.message-type == "NOTICE" %}
-		<strong title="{{ message.host }}">{{ message.nick }}</strong>
+		<strong title="{{ message.host }}"
+                        style="color: {{ message.nick-color }};">{{ message.nick }}</strong>
 	      {% endif %}
 	    </td>
 	    <td class="log-message">

@@ -148,3 +148,13 @@ and second offsets as values."
      using (hash-value users)
      when (member user users :test #'string=)
      collect channel))
+
+;; Nick colors
+(defun get-nick-color (nick)
+  (let* ((num (reduce #'(lambda (num c)
+                          (+ num (char-code c)))
+                      nick :initial-value 0))
+         (hue (* (mod num 18) 20))              ; 0 - 360, step 18
+         (saturation (+ 40 (* 10 (mod num 6)))) ; 40% - 100%, step 10
+         (lightness (+ 10 (* 5 (mod num 8)))))  ; 10% - 50%, step 5
+    (values hue saturation lightness)))
