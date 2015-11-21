@@ -192,10 +192,10 @@
                                                               date-to)))
 				  "'t'"))
 			(:raw (if from-id
-				  (postmodern:sql (:> 'id from-id))
+				  (postmodern:sql (:>= 'id from-id))
 				  "'t'"))
 			(:raw (if to-id
-				  (postmodern:sql (:< 'id to-id))
+				  (postmodern:sql (:<= 'id to-id))
 				  "'t'"))
 			(:raw (if nick
 				  (postmodern:sql (:= 'nick nick))

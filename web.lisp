@@ -137,41 +137,6 @@ and return these names."
                                 query))
              id))))
 
-(defun get-pager-links (&key request to-id from-id messages limit)
-  "Get links to next and previous pages"
-  (when (/= (length messages) 0)
-    (let* ((params (hunchentoot:get-parameters* request))
-           (url (hunchentoot:script-name* request))
-           (query (remove-if #'(lambda (i) (member (car i)
-                                                   '("to-id" "from-id")
-                                                   :test #'equal))
-                             params))     ; Remove ids from query
-           (has-next (= (length messages) (+ limit 1)))
-           (first-id (write-to-string (id (first messages))))
-           (last-id (if has-next
-                        (write-to-string (id (elt messages (- limit 1))))))
-           (newest-link url)
-           (oldest-link (create-url url (acons "from-id" "0" query)))
-           (newer-link)
-           (older-link))
-      (if from-id
-          ;; Moving from older to newer
-          (progn
-            (when has-next
-              (setf newer-link (create-url
-                                url (acons "from-id" last-id query))))
-            (setf older-link (create-url
-                              url (acons "to-id" first-id query))))
-          ;; Moving backwards, from newer to older
-          (progn
-            (when has-next
-              (setf older-link (create-url
-                                url (acons "to-id" last-id query))))
-            (when to-id
-              (setf newer-link (create-url
-                                url (acons "from-id" first-id query))))))
-      (values newer-link older-link newest-link oldest-link))))
-
 ;; Maximum log entries on one page
 (defvar *log-display-limit* 1000)
 
@@ -179,6 +144,125 @@ and return these names."
   (if (= (length string) 0)
       nil
       string))
+
+;;; Web interface uses range-based pagination, page contains LIMIT
+;;; count of comments starting from FROM-ID or lesser to TO-ID. So,
+;;; next page is defined as FROM-ID=ID-OF-LAST-VISIBLE-COMMENT and
+;;; previous page is TO-ID=ID-OF-FIRST-VISIBLE-COMMENT.
+;;;
+;;; This method helps avoid usage of OFFSET in SQL query and helps to
+;;; maintain same query performance on every page. There are two problems:
+;;; - You can't skip to some specific page.
+;;; - It's not easy to find if next and previous pages are available.
+;;;
+;;; First problem can't be really avoided, so app contains some
+;;; alternative navigation methods (skip to date). Solution for second
+;;; problem is to get more than LIMIT and check if first and last
+;;; messages exist, then show only messages in the "middle" of
+;;; results, basically stripping first and last messages (except when
+;;; there are less results than LIMIT+2). When querying with TO-ID
+;;; message list is reversed because SQL query has different sort order.
+;;;
+;;; There are two cases (exaple is asc order):
+;;;
+;;; FROM-ID/TO-ID is equal to first message id, so previous page exist
+;;; first-id == 0.id && length > 1
+;;; [0 1 2 3 4 5 6 7], 8 messages, limit 6
+;;; displaying:
+;;;    1 2 3 4 5 6
+;;; next left-id = 6.id if length >= limit + 2
+;;;      where 6.id == messages[length - 2].id
+;;; prev right-id=1.id
+;;;
+;;; FROM-ID/TO-ID is not equal to first message id, so previous
+;;; page doesn't exist
+;;; first-id != 0.id || length == 1
+;;; [0 1 2 3 4 5 6 7], 8 messages, limit 6
+;;; displaying
+;;;  0 1 2 3 4 5
+;;; next left-id = 5.id if length >= limit + 1
+;;;      where 5.id == messages[limit - 1].id
+;;; prev is NIL
+;;;
+;;; When order is ASC, from-id = right-id (next page) and to-id =
+;;; left-id (prev page). If order is DESC (TO-ID is not NIL or not
+;;; TO-ID and not FROM-ID) message list is reversed and ids are
+;;; swapped.
+
+(defun prepare-message-list (&key messages sort from-id to-id limit)
+  "Get older and newer ids for pagination and slice messages to limit."
+  (let ((first-id (if (eq sort 'desc) to-id from-id))
+        (length (length messages))
+        (left-id nil)
+        (right-id nil)
+        (older-id nil)
+        (newer-id nil)
+        (messages-list))
+    (when (> length 1)
+      (unless first-id
+        (setf first-id (id (first messages))))
+      (cond ((and (or from-id to-id)
+                  (= first-id (id (first messages)))
+                  (> length 1))
+             ;; Have previous messages and more than one message
+             (setf messages-list (slice-list messages 1 (1+ limit)))
+             (setf left-id (id (elt messages 1)))
+             ;; Have next messages
+             (when (>= length (+ 2 limit))
+               (setf right-id (id (elt messages (- length 2))))))
+            ;; Have no previous messages, only one message or list of
+            ;; newest messages
+            (t 
+             (setf messages-list (slice-list messages 0 limit))
+             (when (>= length (+ 1 limit))
+               (setf right-id (id (car (last messages-list)))))))
+      (if (eq sort 'asc)
+          ;; Have from-id and ascending order
+          (progn
+            (setf older-id left-id)
+            (setf newer-id right-id))
+          ;; Have to-id and descending order
+          (progn
+            (setf older-id right-id)
+            (setf newer-id left-id)
+            (setf messages-list (nreverse messages-list)))))
+    (values messages-list newer-id older-id)))
+
+(defun paginate-messages (&key request from-id to-id messages limit sort)
+  "Slice messages list to limit and create pagination links."
+  (multiple-value-bind (messages-list newer-id older-id)
+      (prepare-message-list :messages messages
+                            :sort sort
+                            :limit limit
+                            :from-id from-id
+                            :to-id to-id)
+    (multiple-value-bind (newer-link older-link newest-link oldest-link)
+        (get-pager-links request older-id newer-id)
+      (values messages-list newer-link older-link newest-link oldest-link))))
+
+(defun get-pager-links (request older-id newer-id)
+  "Get links to next and previous pages"
+  (let* ((params (hunchentoot:get-parameters* request))
+         (url (hunchentoot:script-name* request))
+         (query (remove-if #'(lambda (i) (member (car i)
+                                                 '("to-id" "from-id")
+                                                 :test #'equal))
+                           params))     ; Remove ids from query
+         (newest-link url)
+         (oldest-link (create-url url (acons "from-id" "0" query)))
+         (newer-link)
+         (older-link))
+    (when older-id
+      (setf older-link
+            (create-url url (acons "to-id"
+                                   (write-to-string older-id)
+                                   query))))
+    (when newer-id
+      (setf newer-link
+            (create-url url (acons "from-id"
+                                   (write-to-string newer-id)
+                                   query))))
+    (values newer-link older-link newest-link oldest-link)))
 
 (hunchentoot:define-easy-handler (channel-log :uri #'match-channel)
     ((date-from :parameter-type #'nullable-str)
@@ -254,52 +338,55 @@ and return these names."
                           :date-to date-to
                           :to-id to-id
                           :from-id from-id
-                          :limit (+ limit 1)
-                          :sort sort))
-               ;; Slice list to limit,
-               ;; format dates and addd nick colors (djula can't call methods)
-               (messages-list (mapcar #'(lambda (e)
-                                          (set-nick-color e)
-                                          (format-date e lt-tz)
-                                          e)
-                                      (slice-list messages 0 limit))))
-          (multiple-value-bind (newer-link older-link newest-link oldest-link)
-              (get-pager-links :request hunchentoot:*request*
-                               :from-id from-id
-                               :to-id to-id
-                               :messages messages
-                               :limit limit)
-            (if (eq sort 'desc)
-                (setf messages-list (nreverse messages-list)))
-            (djula:render-template* +channel.html+
-                                    nil
-                                    :messages messages-list
-                                    :server server
-                                    :channel channel
-                                    :host host
-                                    :nick nick
-                                    :message message
-                                    :date-from (format-search-date
-                                                date-from
+                          :limit (+ limit 2)
+                          :sort sort)))
+          (multiple-value-bind (messages-list
+                                newer-link
+                                older-link
+                                newest-link
+                                oldest-link)
+              (paginate-messages :request hunchentoot:*request*
+                                 :from-id from-id
+                                 :to-id to-id
+                                 :messages messages
+                                 :sort sort
+                                 :limit limit)
+            ;; Slice list to limit,
+            ;; format dates and addd nick colors (djula can't call methods)
+            (let ((messages-list (mapcar #'(lambda (e)
+                                             (set-nick-color e)
+                                             (format-date e lt-tz)
+                                             e)
+                                         messages-list)))
+              (djula:render-template* +channel.html+
+                                      nil
+                                      :messages messages-list
+                                      :server server
+                                      :channel channel
+                                      :host host
+                                      :nick nick
+                                      :message message
+                                      :date-from (format-search-date
+                                                  date-from
+                                                  lt-tz)
+                                      :date-to (format-search-date
+                                                date-to
                                                 lt-tz)
-                                    :date-to (format-search-date
-                                              date-to
-                                              lt-tz)
-                                    :limit limit
-                                    :max-limit *log-display-limit*
-                                    :default-limit *default-log-limit*
-                                    :current-url (hunchentoot:request-uri*)
-                                    :newest-url (hunchentoot:script-name*)
-                                    :timezones +timezone-names+
-                                    :selected-tz tz
-                                    :nicks (get-nicks :server server
-                                                      :channel channel)
-                                    :newest-link newest-link
-                                    :oldest-link oldest-link
-                                    :to-id to-id
-                                    :from-id from-id
-                                    :newer-link newer-link
-                                    :older-link older-link)))))))
+                                      :limit limit
+                                      :max-limit *log-display-limit*
+                                      :default-limit *default-log-limit*
+                                      :current-url (hunchentoot:request-uri*)
+                                      :newest-url (hunchentoot:script-name*)
+                                      :timezones +timezone-names+
+                                      :selected-tz tz
+                                      :nicks (get-nicks :server server
+                                                        :channel channel)
+                                      :newest-link newest-link
+                                      :oldest-link oldest-link
+                                      :to-id to-id
+                                      :from-id from-id
+                                      :newer-link newer-link
+                                      :older-link older-link))))))))
 
 (defvar *acceptor* nil)
 
