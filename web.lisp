@@ -248,7 +248,7 @@ and return these names."
                                                  '("to-id" "from-id")
                                                  :test #'equal))
                            params))     ; Remove ids from query
-         (newest-link url)
+         (newest-link (create-url url query))
          (oldest-link (create-url url (acons "from-id" "0" query)))
          (newer-link)
          (older-link))

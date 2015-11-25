@@ -78,12 +78,13 @@ and second offsets as values."
                           (hunchentoot:url-encode (car pair))
                           "="
                           (hunchentoot:url-encode (cdr pair))))))
-    (concatenate 'string
-                 base
-                 (if (search "?" base) "&" "?")
-                 (format nil
-                         "~{~a~^&~}"
-                         (remove nil (mapcar #'encode-params query))))))
+    (let ((args (remove nil (mapcar #'encode-params query))))
+      (if args
+          (concatenate 'string
+                       base
+                       (if (search "?" base) "&" "?")
+                       (format nil "~{~a~^&~}" args))
+          base))))
 
 ;; List of available timezones. Offsets taken from
 ;; https://en.wikipedia.org/wiki/List_of_UTC_time_offsets
