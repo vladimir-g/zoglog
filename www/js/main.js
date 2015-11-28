@@ -58,4 +58,50 @@ ready(function () {
 	window.location.href = filterForm.action + query.join('&');
     });
 
+    // AJAX nickname autocomplete
+    var nicksLoading = false;
+    var nicksLoaded = false;
+    var nickInput = document.getElementById('nick');
+    var nickIcon = document.getElementById('nick-icon');
+    var dataList = document.getElementById('nicks');
+    nickInput.addEventListener('focus', function (e) {
+        if (nicksLoading || nicksLoaded)
+            return;
+        nicksLoading = true;
+        // Show icon
+        nickIcon.classList.remove('glyphicon-user');
+        nickIcon.classList.add('glyphicon-refresh');
+        nickIcon.classList.add('spinning');
+         // Load nick list from server
+        var req = new XMLHttpRequest();
+        var server = encodeURIComponent(nickInput.dataset.server);
+        var channel = encodeURIComponent(
+            nickInput.dataset.channel.substring(1) // First char is #
+        );
+        req.open('GET',
+                 '/nicknames/?server=' + server + '&channel=' + channel);
+        req.addEventListener('load', function () {
+            // Check errors
+            if (this.status !== 200)
+                return;
+            // Populate datalist
+            this.responseText.split('\n').forEach(function (nick) {
+                var opt = document.createElement('option');
+                opt.textContent = nick;
+                opt.value = nick;
+                dataList.appendChild(opt);
+            });
+            nicksLoaded = true;
+        });
+        // Hide icon when request is finished
+        req.addEventListener('loadend', function () {
+            nicksLoading = false;
+            // Hide icon
+            nickIcon.classList.remove('spinning');
+            nickIcon.classList.remove('glyphicon-refresh');
+            nickIcon.classList.add('glyphicon-user');
+        });
+        req.send();
+    });
+
 });

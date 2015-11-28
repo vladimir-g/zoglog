@@ -80,6 +80,16 @@
                             :max-age 31536000))
   (hunchentoot:redirect return-path))
 
+(hunchentoot:define-easy-handler (channel-nicks :uri "/nicknames/")
+    (server channel)
+  "Get list of all nicknames for channel."
+  (unless (channel-exists-p server channel)
+    (return-404)
+    (return-from channel-nicks nil))
+  (format nil "~{~a~^~%~}"
+          (get-nicks :server server
+                     :channel (format nil "#~a" channel))))
+
 (defun match-channel (request)
   "Check if url matches scheme /channel/:server-name/:channel-name/
 and return these names."
@@ -379,8 +389,6 @@ and return these names."
                                       :newest-url (hunchentoot:script-name*)
                                       :timezones +timezone-names+
                                       :selected-tz tz
-                                      :nicks (get-nicks :server server
-                                                        :channel channel)
                                       :newest-link newest-link
                                       :oldest-link oldest-link
                                       :to-id to-id

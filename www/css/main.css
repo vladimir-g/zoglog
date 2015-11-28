@@ -24,6 +24,25 @@ nav.paginator {
     padding: 1px;
 }
 
+.glyphicon.spinning {
+    animation: spin 1s infinite linear;
+    -webkit-animation: spin2 1s infinite linear;
+}
+
+.glyphicon-refresh.spinning {
+  transform-origin: 50% 43%;
+}
+
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg); }
+    to { transform: scale(1) rotate(360deg); }
+}
+
+@-webkit-keyframes spin2 {
+    from { -webkit-transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); }
+}
+
 @media (min-width: 768px) {
     #limit {
 	width: 8rem;
