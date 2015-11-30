@@ -20,8 +20,14 @@
   "Invoke CONTINUE restart on message parsing error."
   (if (and (slot-exists-p c 'raw) (slot-boundp c 'raw))
       (vom:error "Parse error: ~a, line: ~a" c (raw c))
-      (vom:error "Stream error: ~a" c))
+      (vom:error "Parse error: ~a" c))
   (invoke-restart 'continue))
+
+(defun restart-stream-error (c)
+  "Invoke RESTART-LOOP on stream error."
+  (vom:error "Stream error: ~a" c)
+  (sleep 10)
+  (invoke-restart 'restart-loop))
 
 (defun restart-banned (c)
   "Do nothing when logger was banned."
@@ -40,7 +46,7 @@
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
                  (logger-was-kicked #'restart-kicked)
                  (message-parse-error #'restart-message-parse-error)
-                 (stream-error #'restart-message-parse-error)
+                 (stream-error #'restart-stream-error)
                  (logger-was-banned #'restart-banned)
                  (error #'restart-unknown-error))
     (loop do
@@ -55,6 +61,7 @@
                       (when extra-commands
                         (loop for cmd in extra-commands
                              do (send-cmd stream cmd)))
+                      (vom:info "Connected to: ~{#~a~^,~}" channels)
                       (do ((line
                             (read-line stream nil)
                             (read-line stream nil)))
