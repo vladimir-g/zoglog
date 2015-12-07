@@ -19,4 +19,5 @@
    :database-user "zoglog"
    :database-name "zoglog"
    :database-password "zoglog"
-   :database-host "localhost")
+   :database-host "localhost"
+   :log-level :info)                    ; log level for vom

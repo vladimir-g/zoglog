@@ -135,7 +135,8 @@
   database-user
   database-password
   database-name
-  database-host)
+  database-host
+  log-level)
 
 (defun read-config (path)
   "Read config struct from file."
@@ -209,11 +210,11 @@
   (let ((default-conf (asdf:system-relative-pathname "zoglog" "config.lisp")))
     (unless conf-file
       (setf conf-file default-conf))
-    (vom:config t :info)
     (hunchentoot:reset-session-secret)
     (if (probe-file conf-file)
         (progn
           (read-config conf-file)
+          (vom:config t (or (conf-log-level *config*) :info))
           (create-log-file (conf-log-path *config*))
           (setup-database *config*)
           (init-db)
