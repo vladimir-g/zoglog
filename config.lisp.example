@@ -3,10 +3,12 @@
 #S(zoglog::conf
    ;; Plist of servers
    :servers ((:server "localhost"
-		      :port 6667
-		      :nick "test"
-		      :channels ("test1" "test2")
-		      :extra ("PRIVMSG NickServ :IDENTIFY somepassword")))
+                      :port 6667
+                      :nick "test"
+                      :channels ("test1" "test2")
+                      :extra ("PRIVMSG NickServ :IDENTIFY somepassword")
+                      :encoding :utf-8)) ; optional flexi-streams
+                                         ; encoding, default :utf-8
    ;; Optinal
    ;; Hunchentoot listen port
    :web-port 4242

@@ -40,7 +40,14 @@
   (sleep 10)
   (invoke-restart 'restart-loop))
 
-(defun log-server (server port nick channels &optional extra-commands)
+(defun make-stream (socket &optional encoding)
+  (let* ((encoding (or encoding :utf-8))
+         (stream (usocket:socket-stream socket))
+         (fmt (flexi-streams:make-external-format encoding :eol-style :crlf)))
+    (flexi-streams:make-flexi-stream stream :external-format fmt)))
+
+(defun log-server (server port nick channels
+                   &optional extra-commands encoding)
   "Run logging loop for specified server."
   (update-db-channels server channels)
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
@@ -51,8 +58,11 @@
                  (error #'restart-unknown-error))
     (loop do
          (restart-case
-             (let* ((socket (usocket:socket-connect server port))
-                    (stream (usocket:socket-stream socket))
+             (let* ((socket (usocket:socket-connect server
+                                                    port
+                                                    :element-type
+                                                    'flexi-streams:octet))
+                    (stream (make-stream socket encoding))
                     (*users-list* (make-hash-table :test #'equal)))
                (unwind-protect
                     (progn
@@ -107,7 +117,8 @@
                                              (getf server :port)
                                              (getf server :nick)
                                              (getf server :channels)
-                                             (getf server :extra)))
+                                             (getf server :extra)
+                                             (getf server :encoding)))
                              :initial-bindings (list (cons
                                                       '*standard-output*
                                                       *standard-output*))

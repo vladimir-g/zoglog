@@ -13,7 +13,8 @@
                  #:bordeaux-threads
                  #:djula
                  #:vom
-                 #:cl-ppcre)
+                 #:cl-ppcre
+                 #:flexi-streams)
     :components ((:file "package")
                  (:file "utils")
                  (:file "database")
