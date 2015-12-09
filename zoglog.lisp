@@ -143,32 +143,26 @@
   (with-open-file (in path)
     (setf *config* (read in))))
 
+(defun open-log-file (path)
+  "Get log file stream in utf-8."
+  (flexi-streams:make-flexi-stream (open path
+                                         #+ccl :sharing #+ccl :lock
+                                         :direction :output
+                                         :if-does-not-exist :create
+                                         :element-type 'flexi-streams:octet
+                                         :if-exists :append)
+                                   :external-format :utf-8))
+
 (defvar *log-stream* nil)
 (defun create-log-file (path)
   "Create log file. CCL version requires lock for multithreading."
-  (if path
-      #+ccl (setf *log-stream*
-                  (open path :sharing :lock
-                        :direction :output
-                        :if-does-not-exist :create
-                        :if-exists :append))
-      #-ccl (setf *log-stream* (open path
-                                     :direction :output
-                                     :if-does-not-exist :create
-                                     :if-exists :append))))
+  (when path
+    (setf *log-stream* (open-log-file path))))
 
 (defvar *hunch-log* nil)
 (defun setup-web-log (path)
   (when path
-    (let ((stream #-ccl (open path
-                              :direction :output
-                              :if-does-not-exist :create
-                              :if-exists :append)
-                  #+ccl (open path
-                              :sharing :lock
-                              :direction :output
-                              :if-does-not-exist :create
-                              :if-exists :append)))
+    (let ((stream (open-log-file path)))
       (setf *hunch-log* stream)
       (setf (hunchentoot:acceptor-access-log-destination
              *acceptor*) *hunch-log*)
@@ -242,4 +236,3 @@
     (finish-output *log-stream*)
     (close *log-stream*)
     (setf *log-stream* nil)))
-
