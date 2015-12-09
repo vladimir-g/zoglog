@@ -127,16 +127,6 @@
 
 ;; Config
 (defvar *config* nil)
-(defstruct conf
-  servers
-  web-port
-  log-path
-  web-log
-  database-user
-  database-password
-  database-name
-  database-host
-  log-level)
 
 (defun read-config (path)
   "Read config struct from file."
@@ -194,10 +184,10 @@
 
 ;; Setup database if config provided
 (defun setup-database (config)
-  (setf *database-name* (conf-database-name config))
-  (setf *database-user* (conf-database-user config))
-  (setf *database-host* (conf-database-host config))
-  (setf *database-password* (conf-database-password config)))
+  (setf *database-name* (getf config :database-name))
+  (setf *database-user* (getf config :database-user))
+  (setf *database-host* (getf config :database-host))
+  (setf *database-password* (getf config :database-password)))
 
 ;; Start app
 (defun start (&optional conf-file)
@@ -208,14 +198,14 @@
     (if (probe-file conf-file)
         (progn
           (read-config conf-file)
-          (vom:config t (or (conf-log-level *config*) :info))
-          (create-log-file (conf-log-path *config*))
+          (vom:config t (or (getf *config* :log-level) :info))
+          (create-log-file (getf *config* :log-path))
           (setup-database *config*)
           (init-db)
-          (start-logging (conf-servers *config*))
+          (start-logging (getf *config* :servers))
           ;; Setup hunchentoot logging
-          (start-web (conf-web-port *config*))
-          (setup-web-log (conf-web-log *config*)))
+          (start-web (getf *config* :web-port))
+          (setup-web-log (getf *config* :web-log)))
         (progn
           (vom:info "Config not found.")
           (init-db)

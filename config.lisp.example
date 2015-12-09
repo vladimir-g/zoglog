@@ -1,23 +1,21 @@
 ;; This is example config, copy it to config.lisp
 
-#S(zoglog::conf
-   ;; Plist of servers
-   :servers ((:server "localhost"
-                      :port 6667
-                      :nick "test"
-                      :channels ("test1" "test2")
-                      :extra ("PRIVMSG NickServ :IDENTIFY somepassword")
-                      :encoding :utf-8)) ; optional flexi-streams
-                                         ; encoding, default :utf-8
-   ;; Optinal
-   ;; Hunchentoot listen port
-   :web-port 4242
-   ;; Log file path
-   :log-path "/tmp/zog.log"
-   :web-log "/tmp/hunch.log"
-   ;; Database config
-   :database-user "zoglog"
-   :database-name "zoglog"
-   :database-password "zoglog"
-   :database-host "localhost"
-   :log-level :info)                    ; log level for vom
+(;; Plist of servers
+ :servers ((:server "localhost"
+            :port 6667
+            :nick "test"
+            :channels ("test1" "test2")
+            :extra ("PRIVMSG NickServ :IDENTIFY somepassword")
+            :encoding :utf-8)) ; optional flexi-streams
+                               ; encoding, default :utf-8
+ ;; Hunchentoot listen port (optional)
+ :web-port 4242
+ ;; Log file path
+ :log-path "/tmp/zog.log"
+ :web-log "/tmp/hunch.log"
+ ;; Database config
+ :database-user "zoglog"
+ :database-name "zoglog"
+ :database-password "zoglog"
+ :database-host "localhost"
+ :log-level :info)              ; log level for vom
