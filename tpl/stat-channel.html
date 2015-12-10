@@ -42,7 +42,7 @@
             {% for user in message-stats.users %}
               <tr>
                 <td>{{ forloop.counter }}</td>
-                <td class="stat-nick"><span style="color: {{ user.color }};">{{ user.nick }}</span></td>
+                <td class="stat-nick"><strong style="color: {{ user.color }};">{{ user.nick }}</strong></td>
                 <td>{{ user.messages }}</td>
                 <td>{{ user.share|format:"~$" }}%</td>
               </tr>
