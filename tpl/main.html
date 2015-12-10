@@ -8,7 +8,7 @@
 
   <div class="list-group">
     {% for channel in channels %}
-      {% ifchanged channel.server-id %}
+      {% ifchanged channel.server-id or forloop.first %}
 	<a class="list-group-item list-group-item-info">{{ channel.server-id }}</a>
       {% endifchanged %}
       <a href="/channel/{{ channel.server-id|urlencode }}/{{ channel.name|urlencode }}/" class="list-group-item">

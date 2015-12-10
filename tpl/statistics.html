@@ -8,7 +8,7 @@
 
   <div class="list-group">
     {% for channel in channels %}
-      {% ifchanged channel.server-id %}
+      {% ifchanged channel.server-id or forloop.first %}
 	<a class="list-group-item list-group-item-success">
           {{ channel.server-id }}
         </a>
