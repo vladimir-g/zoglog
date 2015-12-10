@@ -54,8 +54,14 @@
   (let* ((sign (if (equal (char zone 0) #\-) #'- #'+))
          (splitted (split-sequence #\: zone))
          (hours (parse-integer (string-trim "+-" (car splitted))))
-         (minutes (parse-integer (cadr splitted))))
-    (funcall sign (+ (* hours 3600) (* minutes 60)))))
+         (minutes (parse-integer (cadr splitted)))
+         (offset (funcall sign (+ (* hours 3600) (* minutes 60)))))
+    ;; Limit offset for range allowed in local-time
+    (when (< offset -43199)
+      (setf offset -43199))
+    (when (> offset 50400)
+      (setf offset 50400))
+    offset))
 
 (defun create-tz-name (zone)
   (concatenate 'string "UTC " zone))
