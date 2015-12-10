@@ -57,18 +57,22 @@
                                (hunchentoot:escape-for-html it)
                                #'replace-with-link))
 
+(defmacro render-template (template &rest args)
+  "Render djula template and inject additional arguments."
+  `(djula:render-template* ,template nil
+                           ,@args
+                           :timezones +timezone-names+
+                           :current-url (hunchentoot:request-uri*)
+                           :selected-tz (get-selected-tz
+                                         hunchentoot:*request*)))
+
 ;;; Handlers
 (defun return-404 ()
   (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+))
 
 (hunchentoot:define-easy-handler (main :uri "/") ()
   "Main page, display list of channels with servers."
-    (djula:render-template* +main.html+ nil
-                            :channels (get-all-channels)
-                            :timezones +timezone-names+
-                            :current-url (hunchentoot:request-uri*)
-                            :selected-tz (get-selected-tz
-                                          hunchentoot:*request*)))
+  (render-template +main.html+ :channels (get-all-channels)))
 
 (hunchentoot:define-easy-handler (set-timezone :uri "/set-timezone/")
     (timezone return-path)
@@ -368,33 +372,29 @@ and return these names."
                                              (format-date e lt-tz)
                                              e)
                                          messages-list)))
-              (djula:render-template* +channel.html+
-                                      nil
-                                      :messages messages-list
-                                      :server server
-                                      :channel channel
-                                      :host host
-                                      :nick nick
-                                      :message message
-                                      :date-from (format-search-date
-                                                  date-from
-                                                  lt-tz)
-                                      :date-to (format-search-date
-                                                date-to
-                                                lt-tz)
-                                      :limit limit
-                                      :max-limit *log-display-limit*
-                                      :default-limit *default-log-limit*
-                                      :current-url (hunchentoot:request-uri*)
-                                      :newest-url (hunchentoot:script-name*)
-                                      :timezones +timezone-names+
-                                      :selected-tz tz
-                                      :newest-link newest-link
-                                      :oldest-link oldest-link
-                                      :to-id to-id
-                                      :from-id from-id
-                                      :newer-link newer-link
-                                      :older-link older-link))))))))
+              (render-template +channel.html+
+                               :messages messages-list
+                               :server server
+                               :channel channel
+                               :host host
+                               :nick nick
+                               :message message
+                               :date-from (format-search-date
+                                           date-from
+                                           lt-tz)
+                               :date-to (format-search-date
+                                         date-to
+                                         lt-tz)
+                               :limit limit
+                               :max-limit *log-display-limit*
+                               :default-limit *default-log-limit*
+                               :newest-url (hunchentoot:script-name*)
+                               :newest-link newest-link
+                               :oldest-link oldest-link
+                               :to-id to-id
+                               :from-id from-id
+                               :newer-link newer-link
+                               :older-link older-link))))))))
 
 (defvar *acceptor* nil)
 
