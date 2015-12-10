@@ -66,10 +66,7 @@
 
 ;; Nick colors
 (defmethod set-nick-color ((event event))
-  (multiple-value-bind (hue saturation lightness)
-      (get-nick-color (nick event))
-    (setf (nick-color event)
-          (format nil "hsl(~a, ~a%, ~a%)" hue saturation lightness))))
+  (setf (nick-color event) (get-nick-color-hsl (nick event))))
 
 (defun table-exists (name)
   "Check if table exists."
@@ -222,6 +219,7 @@
       limit))))
 
 (defun get-nicks (&key server channel)
+  "Get all user nicknames for channel."
   (with-db
     (postmodern:query (:order-by (:select 'nick :distinct
                                           :from 'events
@@ -231,6 +229,7 @@
                       server channel :column)))
 
 (defun get-context-start (&key server channel event-id size)
+  "Get first event for for in-context display."
   (with-db
     (car
      (last
@@ -243,3 +242,14 @@
 			  (:desc 'id))
 	       size)
        server channel event-id :column)))))
+
+(defun get-message-stats (&key server channel)
+  "Get message count for every nick on channel."
+  (with-db
+    (postmodern:query (:order-by (:select 'nick (:as (:count 'id) 'count)
+                                          :from 'events
+                                          :where (:and (:= 'server '$1)
+                                                       (:= 'channel '$2))
+                                          :group-by 'nick)
+                                 (:desc 'count))
+                      server channel)))

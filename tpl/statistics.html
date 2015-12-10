@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block center %}
+
+  <div class="page-header">
+    <h1>Statistics</h1>
+  </div>
+
+  <div class="list-group">
+    {% for channel in channels %}
+      {% ifchanged channel.server-id %}
+	<a class="list-group-item list-group-item-success">
+          {{ channel.server-id }}
+        </a>
+      {% endifchanged %}
+      <a href="/statistics/{{ channel.server-id|urlencode }}/{{ channel.name|urlencode }}/" class="list-group-item">
+	<strong class="text-primary">#{{ channel.name }}</strong>
+      </a>
+    {% endfor %}
+  </div>
+
+{% endblock %}

@@ -17,6 +17,12 @@
 	  <a href="/" class="navbar-brand">ZOGLOG</a>
 	</div>
 
+        <ul class="nav navbar-nav">
+          <li{% if active-menu-item == "statistics" %} class="active"{% endif %}>
+            <a href="/statistics/">Statistics</a>
+          </li>
+        </ul>
+
         <form class="navbar-form navbar-right"
               action="/set-timezone/">
               <input type="hidden" name="return-path" value="{{ current-url }}" />

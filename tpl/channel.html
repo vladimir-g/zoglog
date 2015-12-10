@@ -5,7 +5,14 @@
 {% block center %}
 
   <div class="page-header">
-    <h1>{{ channel }} <small>{{ server }}</small></h1>
+    <h1>{{ channel }}
+      <small>
+        {{ server }}
+        <a href="/statistics/{{ server|urlencode }}/{{ channel|cut:"#"|urlencode }}/" title="Channel statistics">
+          <span class="glyphicon glyphicon-stats"></span>
+        </a>
+      </small>
+    </h1>
   </div>
 
   <div class="well well-sm">

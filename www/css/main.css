@@ -79,7 +79,7 @@ nav.paginator {
         display: inline;
     }
 
-    .log-message {
+    .log-message,.stat-nick {
         overflow-wrap: break-word;
         word-wrap: break-word;
 

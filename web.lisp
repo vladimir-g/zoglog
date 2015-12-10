@@ -6,6 +6,8 @@
 (defparameter +base.html+ (djula:compile-template* "base.html"))
 (defparameter +main.html+ (djula:compile-template* "main.html"))
 (defparameter +channel.html+ (djula:compile-template* "channel.html"))
+(defparameter +statistics.html+ (djula:compile-template* "statistics.html"))
+(defparameter +stat-channel.html+ (djula:compile-template* "stat-channel.html"))
 
 (setf hunchentoot:*rewrite-for-session-urls* nil)
 (setf hunchentoot:*session-max-time* 86400)
@@ -61,6 +63,7 @@
   "Render djula template and inject additional arguments."
   `(djula:render-template* ,template nil
                            ,@args
+                           :active-menu-item nil
                            :timezones +timezone-names+
                            :current-url (hunchentoot:request-uri*)
                            :selected-tz (get-selected-tz
@@ -93,15 +96,6 @@
   (format nil "~{~a~^~%~}"
           (get-nicks :server server
                      :channel (format nil "#~a" channel))))
-
-(defun match-channel (request)
-  "Check if url matches scheme /channel/:server-name/:channel-name/
-and return these names."
-  (multiple-value-bind (str match)
-      (cl-ppcre:scan-to-strings "^/channel/([^/]+)/([^/]+)/$"
-                                (hunchentoot:script-name* request))
-    (declare (ignore str))
-    match))
 
 (defun redirect-to-date (&key request server channel date-to date-from
                            nick host message skip-to lt-tz limit)
@@ -278,7 +272,26 @@ and return these names."
                                    query))))
     (values newer-link older-link newest-link oldest-link)))
 
-(hunchentoot:define-easy-handler (channel-log :uri #'match-channel)
+(defmacro match-channel-regex (scanner request)
+  "Match url with two values with precompiled regex scanner"
+  (let ((str (gensym))
+        (match (gensym)))
+    `(multiple-value-bind (,str ,match)
+         (cl-ppcre:scan-to-strings ,scanner
+                                   (hunchentoot:script-name* ,request))
+       (declare (ignore ,str))
+       ,match)))
+
+;;; Channel page
+
+;;; URL match regex
+(defparameter +chan-regex+ (cl-ppcre:create-scanner
+                            "^/channel/([^/]+)/([^/]+)/$"))
+
+(defun match-channel-page (request)
+  (match-channel-regex +chan-regex+ request))
+
+(hunchentoot:define-easy-handler (channel-log :uri #'match-channel-page)
     ((date-from :parameter-type #'nullable-str)
      (date-to :parameter-type #'nullable-str)
      (nick :parameter-type #'nullable-str)
@@ -291,7 +304,7 @@ and return these names."
      (limit :parameter-type 'integer))
   "Display filtered channel log."
   (destructuring-bind (server channel)
-      (map 'list #'(lambda (x) x) (match-channel hunchentoot:*request*))
+      (map 'list #'(lambda (x) x) (match-channel-page hunchentoot:*request*))
     (progn
       ;; Show 404 if channel not found
       (unless (channel-exists-p server channel)
@@ -395,6 +408,52 @@ and return these names."
                                :from-id from-id
                                :newer-link newer-link
                                :older-link older-link))))))))
+
+
+;; Statistics
+(hunchentoot:define-easy-handler (statistics :uri "/statistics/") ()
+  "Show main statistics page with channel list."
+  (render-template +statistics.html+
+                   :channels (get-all-channels)
+                   :active-menu-item "statistics"))
+
+;;; Channel statistics page
+(defparameter +stat-regex+ (cl-ppcre:create-scanner
+                            "^/statistics/([^/]+)/([^/]+)/$"))
+
+(defun match-stat-page (request)
+  (match-channel-regex +stat-regex+ request))
+
+(defun prepare-message-stats (stats)
+  (let ((count (loop for i in stats sum (cadr i))))
+    (list
+     :users (loop for item in stats
+               collect (list
+                        :color (get-nick-color-hsl (car item))
+                        :nick (car item)
+                        :messages (cadr item)
+                        :share (float (* 100 (/ (cadr item) count)))))
+     :count count)))
+
+(hunchentoot:define-easy-handler (channel-stat :uri #'match-stat-page) ()
+  "Display channel statistics page."
+  (destructuring-bind (server channel)
+      (map 'list #'(lambda (x) x) (match-stat-page hunchentoot:*request*))
+    (progn
+      (unless (channel-exists-p server channel)
+        (return-404)
+        (return-from channel-stat nil))
+      (let* ((channel (format nil "#~a" channel))
+             (message-stats (prepare-message-stats
+                             (get-message-stats :server server
+                                                :channel channel))))
+        (render-template +stat-channel.html+
+                         :server server
+                         :channel channel
+                         :message-stats message-stats
+                         :active-menu-item "statistics")))))
+
+;;; Startup code
 
 (defvar *acceptor* nil)
 

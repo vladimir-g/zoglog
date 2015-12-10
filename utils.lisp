@@ -158,6 +158,7 @@ and second offsets as values."
 
 ;; Nick colors
 (defun get-nick-color (nick)
+  "Get hue, saturation and lightness for nick."
   (let* ((num (reduce #'(lambda (num c)
                           (+ num (char-code c)))
                       nick :initial-value 0))
@@ -165,3 +166,9 @@ and second offsets as values."
          (saturation (+ 40 (* 10 (mod num 6)))) ; 40% - 100%, step 10
          (lightness (+ 10 (* 5 (mod num 8)))))  ; 10% - 50%, step 5
     (values hue saturation lightness)))
+
+(defun get-nick-color-hsl (nick)
+  "Get nick color in CSS HSL format."
+  (multiple-value-bind (hue saturation lightness)
+      (get-nick-color nick)
+    (format nil "hsl(~a, ~a%, ~a%)" hue saturation lightness)))
