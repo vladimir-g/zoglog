@@ -8,9 +8,21 @@
 
   <div class="list-group">
     {% for channel in channels %}
-      {% ifchanged channel.server-id or forloop.first %}
-	<a class="list-group-item list-group-item-info">{{ channel.server-id }}</a>
+      {% set server_shown = "false" %}
+      {% if forloop.first %}
+        <a class="list-group-item list-group-item-info">
+          {{ channel.server-id }}
+        </a>
+        {% set server_shown = "true" %}
+      {% endif %}
+      {% ifchanged channel.server-id %}
+        {% if server_shown != "true" %}
+          <a class="list-group-item list-group-item-info">
+            {{ channel.server-id }}
+          </a>
+        {% endif %}
       {% endifchanged %}
+      
       <a href="/channel/{{ channel.server-id|urlencode }}/{{ channel.name|urlencode }}/" class="list-group-item">
 	<strong class="text-primary">#{{ channel.name }}</strong>
       </a>
