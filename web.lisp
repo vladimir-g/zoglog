@@ -425,15 +425,23 @@
   (match-channel-regex +stat-regex+ request))
 
 (defun prepare-message-stats (stats)
-  (let ((count (loop for i in stats sum (cadr i))))
+  "Process message stats data."
+  (let ((count (loop for i in stats sum (cadr i)))
+        (active-count 0)
+        (all-count 0))
     (list
      :users (loop for item in stats
                collect (list
                         :color (get-nick-color-hsl (car item))
                         :nick (car item)
                         :messages (cadr item)
-                        :share (float (* 100 (/ (cadr item) count)))))
-     :count count)))
+                        :share (float (* 100 (/ (cadr item) count))))
+               when (> (cadr item) 0)
+                 do (incf active-count)
+               do (incf all-count))
+     :count count
+     :active-count active-count
+     :all-count all-count)))
 
 (hunchentoot:define-easy-handler (channel-stat :uri #'match-stat-page) ()
   "Display channel statistics page."
