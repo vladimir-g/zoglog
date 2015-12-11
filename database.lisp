@@ -244,12 +244,19 @@
        server channel event-id :column)))))
 
 (defun get-message-stats (&key server channel)
-  "Get message count for every nick on channel."
+  "Get PRIVMSG and NOTICE messages count for every nick on channel."
   (with-db
-    (postmodern:query (:order-by (:select 'nick (:as (:count 'id) 'count)
-                                          :from 'events
-                                          :where (:and (:= 'server '$1)
-                                                       (:= 'channel '$2))
-                                          :group-by 'nick)
-                                 (:desc 'count))
-                      server channel)))
+    (postmodern:query
+     (:order-by (:select 'nick
+                         (:as (:count (:case
+                                          ((:in 'message-type
+                                                (:set "PRIVMSG" "NOTICE"))
+                                           'id)))
+                              'count)
+                         :from 'events
+                         :where (:and (:= 'server '$1)
+                                      (:= 'channel '$2))
+                         :group-by 'nick)
+                (:desc 'count)
+                'nick)
+     server channel)))
