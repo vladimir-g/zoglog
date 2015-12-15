@@ -105,26 +105,6 @@
                (sleep *reconnect-timeout*))
            (restart-loop () nil)))))
 
-(defvar *logger-threads* nil)
-
-(defun start-logging (servers)
-  "Start logger for each server in config plist."
-  (setf *logger-threads*
-        (loop for server in servers
-           collect
-             (bt:make-thread #'(lambda ()
-                                 (log-server (getf server :server)
-                                             (getf server :port)
-                                             (getf server :nick)
-                                             (getf server :channels)
-                                             (getf server :extra)
-                                             (getf server :encoding)))
-                             :initial-bindings (list (cons
-                                                      '*standard-output*
-                                                      *standard-output*))
-                             :name (format nil "~a-logger"
-                                           (getf server :server))))))
-
 ;; Config
 (defvar *config* nil)
 
@@ -132,6 +112,59 @@
   "Read config struct from file."
   (with-open-file (in path)
     (setf *config* (read in))))
+
+;; Logging threads utility
+
+(defvar *logger-instances* (make-hash-table))
+
+(defun create-logging-thread (server-name server-conf)
+  "Start logging thread for server SERVER-NAME with SERVER-CONF."
+  (bt:make-thread #'(lambda ()
+                      (log-server (getf server-conf :server)
+                                  (getf server-conf :port)
+                                  (getf server-conf :nick)
+                                  (getf server-conf :channels)
+                                  (getf server-conf :extra)
+                                  (getf server-conf :encoding)))
+                  :initial-bindings (list (cons
+                                           '*standard-output*
+                                           *standard-output*))
+                  :name (format nil "~a-logger" server-name)))
+
+(defun start-logging-thread (server-name &optional server-conf)
+  "Start logging thread for SERVER-NAME, use global config when config
+  isn't supplied. Raises error if config doesn't exists or logging
+  already started."
+  (unless server-conf
+    (setf server-conf
+          (cdr (assoc server-name (getf *config* :servers)))))
+  (unless server-conf
+    (error "Server conf required for server ~a" server-name))
+  (when (gethash server-name *logger-instances*)
+    (error "Logger thread already launched for server ~a" server-name))
+  (let ((thread (create-logging-thread server-name
+                                       server-conf)))
+    (setf (gethash server-name *logger-instances*)
+          thread)))
+
+(defun stop-logging-thread (server-name)
+  "Stop logging threads for SERVER-NAME if it is running."
+  (let ((thread (gethash server-name *logger-instances*)))
+    (when (and (bt:threadp thread) (bt:thread-alive-p thread))
+      (bt:destroy-thread thread))
+    (remhash server-name *logger-instances*)))
+
+(defun start-logging (&optional (servers (getf *config* :servers)))
+  "Start logger for each server in config plist."
+  (loop for server in servers
+       do (start-logging-thread (car server) (cdr server))))
+
+(defun stop-logging ()
+  "Stop all running logging threads"
+  (loop for server-name being the hash-keys in *logger-instances*
+     do (stop-logging-thread server-name)))
+
+;; Logging
 
 (defun open-log-file (path)
   "Get log file stream in utf-8."
@@ -159,15 +192,6 @@
       (setf (hunchentoot:acceptor-message-log-destination
              *acceptor*) *hunch-log*))))
 
-
-(defmacro add-post (fun-name &body body)
-  "Advise function, thanks to http://stackoverflow.com/a/5409823"
-  (let ((orig (gensym)))
-    `(let ((,orig (fdefinition ,fun-name))) 
-       (setf (fdefinition ,fun-name) (lambda (&rest args)
-                                       (apply ,orig args)
-                                       ,@body)))))
-
 ;; Flush file log after write. Maybe this isn't very good for
 ;; performance.
 (add-post 'vom::do-log
@@ -183,7 +207,7 @@
         (values t *standard-output*))))
 
 ;; Setup database if config provided
-(defun setup-database (config)
+(defun setup-database (&optional (config *config*))
   (setf *database-name* (getf config :database-name))
   (setf *database-user* (getf config :database-user))
   (setf *database-host* (getf config :database-host))
@@ -216,9 +240,7 @@
   (when *acceptor*
     (hunchentoot:stop *acceptor*)
     (setf *acceptor* nil))
-  (if *logger-threads*
-      (dolist (th *logger-threads*)
-        (bt:destroy-thread th)))
+  (stop-logging)
   (when *hunch-log*
     (close *hunch-log*)
     (setf *hunch-log* nil))

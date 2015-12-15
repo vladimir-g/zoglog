@@ -44,9 +44,13 @@
       (setf end len))
     (subseq lst start end)))
 
-(defun last-but-one (lst)
-  "Get last but one element from list."
-  (first (rest (reverse lst))))
+(defmacro add-post (fun-name &body body)
+  "Advise function, thanks to http://stackoverflow.com/a/5409823"
+  (let ((orig (gensym)))
+    `(let ((,orig (fdefinition ,fun-name))) 
+       (setf (fdefinition ,fun-name) (lambda (&rest args)
+                                       (apply ,orig args)
+                                       ,@body)))))
 
 ;; Timezones
 (defun get-offset-from-zone (zone)
@@ -172,3 +176,4 @@ and second offsets as values."
   (multiple-value-bind (hue saturation lightness)
       (get-nick-color nick)
     (format nil "hsl(~a, ~a%, ~a%)" hue saturation lightness)))
+
