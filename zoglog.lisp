@@ -77,7 +77,9 @@
                             (read-line stream nil)))
                           ((not line))
                         (if (string-prefix-p "PING" line)
-                            (send-pong stream line)
+                            (progn
+                              (vom:debug1 "Ping: ~a" line)
+                              (send-pong stream line))
                             (restart-case
                                 (let ((message (parse-message line
                                                               channels
