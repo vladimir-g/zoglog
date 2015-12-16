@@ -469,9 +469,14 @@
 
 (defun start-web (&optional (port 4242))
   "Start logger web interface."
-  (setf *acceptor* (make-instance
-                    'hunchentoot:easy-acceptor
-                    :port port
-                    :document-root
-                    (asdf:system-relative-pathname "zoglog" "www/")))
-  (hunchentoot:start *acceptor*))
+  (handler-case
+      (let ((acceptor (make-instance
+                       'hunchentoot:easy-acceptor
+                       :port port
+                       :document-root
+                       (asdf:system-relative-pathname "zoglog" "www/"))))
+        (hunchentoot:start acceptor)
+        (setf *acceptor* acceptor))
+    (error (c) (progn
+                 (vom:error "Can't start web interface: ~a" c)
+                 (setf *acceptor* nil)))))

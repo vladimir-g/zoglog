@@ -186,7 +186,8 @@
 
 (defvar *hunch-log* nil)
 (defun setup-web-log (path)
-  (when path
+  "Setup hunchentoot logging."
+  (when (and path *acceptor*)
     (let ((stream (open-log-file path)))
       (setf *hunch-log* stream)
       (setf (hunchentoot:acceptor-access-log-destination
