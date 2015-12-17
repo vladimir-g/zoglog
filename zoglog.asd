@@ -18,7 +18,7 @@
     :components ((:file "package")
                  (:file "utils")
                  (:file "database")
-                 (:file "data")
+                 (:file "irc-messages")
                  (:file "irc")
                  (:file "web")
                  (:file "zoglog")))

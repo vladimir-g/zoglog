@@ -104,6 +104,25 @@
          (fmt (flexi-streams:make-external-format encoding :eol-style :crlf)))
     (flexi-streams:make-flexi-stream stream :external-format fmt)))
 
+(defmacro send-cmd (stream tpl &rest args)
+  "Send IRC command through STREAM."
+  `(progn
+     (format ,stream
+             (concatenate 'string ,tpl "~C~C")
+             ,@args #\return #\linefeed)
+     (finish-output ,stream)))
+
+(defun set-nick (stream nick)
+  "Set user name for server."
+  (send-cmd stream "NICK ~a" nick)
+  (send-cmd stream "USER ~a ~:*~a ~:*~a :~:*~a" nick))
+
+(defun send-pong (stream line)
+  "Send 'PONG' in answer to 'PING' line throuck STREAM."
+  (let ((data (string-trim '(#\space #\return #\newline)
+                           (cadr (split-sequence #\: line :count 2)))))
+    (send-cmd stream "PONG :~a" data)))
+
 ;; Main log loop
 
 (defun log-server (server port nick channels
