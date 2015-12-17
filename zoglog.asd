@@ -1,9 +1,9 @@
 ;;; zoglog.asd
 
 (asdf:defsystem #:zoglog
-    :description "Describe zoglog here"
-    :author "Your Name <your.name@example.com>"
-    :license "Specify license here"
+    :description "Simple IRC logger with web interface"
+    :author "Vladimir Gorbunov <vsg@suburban.me>"
+    :license "MIT"
     :serial t
     :depends-on (#:usocket
                  #:split-sequence
