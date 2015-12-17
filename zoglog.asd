@@ -19,6 +19,6 @@
                  (:file "utils")
                  (:file "database")
                  (:file "data")
-                 (:file "parser")
+                 (:file "irc")
                  (:file "web")
                  (:file "zoglog")))
