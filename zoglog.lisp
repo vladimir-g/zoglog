@@ -134,10 +134,8 @@
           (start-web)))))
 
 (defun stop ()
-  "Stop all threads."
-  (when *acceptor*
-    (hunchentoot:stop *acceptor*)
-    (setf *acceptor* nil))
+  "Stop all loggers and web interface, close logs."
+  (stop-web)
   (stop-logging)
   (when *hunch-log*
     (close *hunch-log*)

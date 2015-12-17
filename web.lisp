@@ -480,3 +480,10 @@
     (error (c) (progn
                  (vom:error "Can't start web interface: ~a" c)
                  (setf *acceptor* nil)))))
+
+(defun stop-web ()
+  "Stop web interface."
+  (when *acceptor*
+    (hunchentoot:stop *acceptor*)
+    (setf *acceptor* nil)))
+

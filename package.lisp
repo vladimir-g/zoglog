@@ -4,8 +4,13 @@
   (:use #:cl #:split-sequence)
   (:export #:start
            #:stop
-	   #:*acceptor*
-	   #:*logger-threads*
-	   #:log-server
-	   #:start-web
-	   #:start-logging))
+           #:*acceptor*
+           #:*logger-instances*
+           #:start-logging-thread
+           #:stop-logging-thread
+           #:start-logging
+           #:stop-logging
+           #:log-server
+           #:start-web
+           #:stop-web
+           #:start-logging))
