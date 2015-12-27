@@ -213,6 +213,10 @@
                    :message (message msg)
                    :message-type "QUIT")))
 
+(defmethod process ((msg quit-message))
+  (with-accessors ((channels quit-channels) (nick nick)) msg
+    (dolist (ch channels)
+      (remove-from-users-list ch (list nick)))))
 
 (defmethod save-p ((msg quit-message)) t)
 
