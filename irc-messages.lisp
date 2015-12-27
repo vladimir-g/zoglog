@@ -17,6 +17,9 @@
   ((text :initarg :text :reader text)
    (raw :initarg :raw :reader raw)))
 
+(defun default-message-date ()
+  (local-time:now))
+
 ;; Classes
 
 ;; Generic IRC message
@@ -52,7 +55,7 @@
     :documentation "IRC message source.")
    (date
     :initarg :date
-    :initform (local-time:now)
+    :initform (default-message-date)
     :accessor date
     :documentation "Message date in lisp universal date format")
    (nick

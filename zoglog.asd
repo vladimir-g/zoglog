@@ -21,4 +21,5 @@
                  (:file "irc-messages")
                  (:file "irc")
                  (:file "web")
-                 (:file "zoglog")))
+                 (:file "zoglog"))
+    :in-order-to ((asdf:test-op (asdf:test-op :zoglog-test))))
