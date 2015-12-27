@@ -140,7 +140,7 @@
 (defmethod process ((msg numeric-message))
   (with-accessors ((code code) (args args)) msg
     (cond ((or (= code 433)              ;ERRNICKNAMEINUSE
-               (= code 441))             ;ERRNICKCOLLISION
+               (= code 436))             ;ERRNICKCOLLISION
            (error 'nickname-already-in-use
                   :text (format nil "~{~a~^ ~}" args)))
           ((= code 474)                 ;USER HAS BANNED FOR THIS POST
