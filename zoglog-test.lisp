@@ -16,11 +16,6 @@
 
 (in-suite irc-messages-tests)
 
-(defparameter +date+ (local-time:unix-to-timestamp 1450759697))
-
-(defun zoglog::default-message-date ()
-  +date+)
-
 (defparameter +channels+ '("channel1" "channel2"))
 (defparameter +server+ "test-server")
 (defparameter +logger-nick+ "test-logger")
@@ -38,7 +33,6 @@
          ;; Common checks
          (is (equal ,prefix (zoglog::prefix ,msg)))
          (is (equal ,command (zoglog::command ,msg)))
-         (is (equal +date+ (zoglog::date ,msg)))
          ;; Additional checks
          ,@(loop for (func-name check) in check-forms
               collect
