@@ -97,6 +97,11 @@
   (sleep 10)
   (invoke-restart 'restart-loop))
 
+(defun restart-encoding (c)
+  "Continue on format encoding error."
+  (vom:error "Format encoding error: ~a" c)
+  (use-value #\?))
+
 (defun make-stream (socket &optional encoding)
   "Create flexi-stream from socket."
   (let* ((encoding (or encoding :utf-8))
@@ -134,6 +139,7 @@
                  (message-parse-error #'restart-message-parse-error)
                  (stream-error #'restart-stream-error)
                  (logger-was-banned #'restart-banned)
+                 (flex:external-format-encoding-error #'restart-encoding)
                  (error #'restart-unknown-error))
     (loop do
          (restart-case
