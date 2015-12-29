@@ -63,7 +63,8 @@ ready(function () {
     var nicksLoaded = false;
     var nickInput = document.getElementById('nick');
     var nickIcon = document.getElementById('nick-icon');
-    var dataList = document.getElementById('nicks');
+    var dataList = document.createElement('datalist');
+    dataList.id = 'nicks';
     nickInput.addEventListener('focus', function (e) {
         if (nicksLoading || nicksLoaded)
             return;
@@ -91,6 +92,9 @@ ready(function () {
                 opt.value = nick;
                 dataList.appendChild(opt);
             });
+            // Append datalist to input
+            nickInput.parentNode.appendChild(dataList);
+            nickInput.setAttribute('list', 'nicks');
             nicksLoaded = true;
         });
         // Hide icon when request is finished
