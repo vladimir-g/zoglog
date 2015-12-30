@@ -12,5 +12,4 @@
            #:stop-logging
            #:log-server
            #:start-web
-           #:stop-web
-           #:start-logging))
+           #:stop-web))
