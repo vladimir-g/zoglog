@@ -1,0 +1,114 @@
+* ZOGLOG - simple IRC logger with web interface
+  
+This is a simple IRC logger with web interface implemented in Common
+Lisp that can log multiple channels on different servers. Web
+interface served via [[http://weitz.de/hunchentoot/][Hunchentoot]], logs stored in PostgreSQL using
+[[http://marijnhaverbeke.nl/postmodern/][Postmodern]] library.
+  
+ZOGLOG was tested on SBCL and Clozure CL, but may work on other Lisp
+implementations.
+
+** Install
+
+PostgreSQL and Common Lisp are required.
+
+Put the source code to the place where ASDF could find it, then
+install required dependencies for =zoglog= package (with [[https://www.quicklisp.org/][Quicklisp]] or
+similar tool).
+
+Copy =config.lisp.example= somewhere and edit it.
+
+** Usage
+   
+Use ~start~ function to start logger and web interface:
+   
+#+BEGIN_SRC lisp
+(start "/path/to/config.lisp")
+#+END_SRC
+   
+Config file path is optional, app will use =config.lisp= from the
+source directory by default.
+   
+Stop all services with =stop= function:
+   
+#+BEGIN_SRC lisp
+(stop)
+#+END_SRC
+
+Application starts one thread per IRC server (described in config) and
+a web interace server (listening all addresses on port 4242 by
+default).
+
+Logging and web interface also could be managed separately using other
+functions, even in runtime (with =Swank= for example).
+
+** Reference
+
+~start~ and ~stop~ used to start and stop logger and web interface
+respectively.
+
+Running logger threads stored in the ~*logger-instances*~ hash table,
+where key is the server name from the config and value is the thread
+instance.
+
+- start-logging-thread (server-name &optional server-conf) :: starts
+     logging thread for one server in the config file, designated by
+     the alist key in ~:servers~ and adds thread to
+     ~*logger-instances*~. Custom server configuration may be provided
+     as ~server-conf~ Example:
+     
+#+BEGIN_SRC lisp
+;; Start with config from config file 
+(start-logging-thread 'freenode-logger)
+
+;; Start with custom config
+(start-logging-thread 'other-logger 
+                      '(:server "localhost"
+                        :port 6667
+                        :nick "test"
+                        :channels ("test1" "test2")))
+#+END_SRC
+
+- stop-logging-thread (server-name) :: stops thread by it's key and
+     removes thread from ~*logger-instances*~. Example:
+     
+#+BEGIN_SRC lisp
+(stop-logging-thread 'freenode-logger)
+#+END_SRC
+
+- start-web (&optional (port 4242) address) :: starts web interface.
+
+- stop-web () :: stops web interface.
+
+- start-logging (&optional (servers (getf *config* :servers)) :: starts
+     logging for all servers from the config.  Custom config also may
+     be provided as argument. Same effect can be achieved by executing
+     ~start-logging-thread~ for each server separately.
+
+- stop-logging () :: stops all running logger threads.
+
+- log-server (server port nick channels &optional extra-commands encoding) :: 
+     start logging for one server in current thread. Default encoding
+     is UTF-8. Example:
+
+#+BEGIN_SRC lisp
+(log-server "irc.freenode.net"
+            6667
+            "logger"
+            '("channel1" "channel2")
+            '("PRIVMSG NickServ :IDENTIFY somepassword")
+            :utf-8)
+#+END_SRC
+
+** About
+
+ZOGLOG was made just for fun, it's code isn't very good and not fully
+tested, use it on your own risk (or don't use at all).
+
+Name comes from popular conspirancy theories (and jokes) about
+all-seeing ZOG, don't take it seriously. Author doesn't think that
+real ZOG exists /but that is his problem/.
+
+** License
+
+This app released under MIT license (see [[file:LICENSE][LICENSE]] file)
