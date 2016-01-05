@@ -202,6 +202,52 @@
                  (postmodern:sql (:desc 'date)))))
       limit))))
 
+(defun get-id-before-date (&key server
+                             channel
+                             date-from
+                             date-to
+                             nick
+                             host
+                             message)
+  "Get id of first event before DATE-TO."
+  (with-db
+    (postmodern:query
+     (:limit
+      (:order-by
+       (:select 'id :from 'events
+                :where (:and
+                        (:raw (if server
+                                  (postmodern:sql (:= 'server server))
+                                  "'t'"))
+                        (:raw (if channel
+                                  (postmodern:sql (:= 'channel channel))
+                                  "'t'"))
+                        (:raw (if date-from
+                                  (postmodern:sql (:>= 'date (date-to-pg
+                                                              date-from)))
+                                  "'t'"))
+                        (:raw (if date-to
+                                  (postmodern:sql (:< 'date (date-to-pg
+                                                             date-to)))
+                                  "'t'"))
+                        (:raw (if nick
+                                  (postmodern:sql (:= 'nick nick))
+                                  "'t'"))
+                        (:raw (if host
+                                  (postmodern:sql
+                                   (:ilike 'host (concatenate
+                                                  'string "%" host "%")))
+                                  "'t'"))
+                        (:raw (if message
+                                  (postmodern:sql
+                                   (:ilike 'message (concatenate 'string
+                                                                 "%"
+                                                                 message
+                                                                 "%")))
+                                  "'t'"))))
+       (:desc 'date))
+      1) :single)))
+
 (defun get-nicks (&key server channel)
   "Get all user nicknames for channel."
   (with-db

@@ -55,7 +55,7 @@
 
 (defun redirect-to-date (&key request server channel date-to date-from
                            nick host message skip-to lt-tz limit)
-  "Redirect user to page with to-id is nearest to DATE."
+  "Redirect to message list starting with first message after DATE."
   (let* ((query (list (cons "host" host)
                       (cons "date-to" (format-search-date
                                        date-to
@@ -67,18 +67,16 @@
                       (cons "limit" (if limit (write-to-string limit)))
                       (cons "message" message)))
          (url (hunchentoot:script-name* request))
-         (first (car (get-log-records :server server
-                                      :channel channel
-                                      :host host
-                                      :nick nick
-                                      :message message
-                                      :date-from skip-to
-                                      :date-to date-to
-                                      :limit 1
-                                      :sort 'asc)))
-         (from-id (if first
-                    (write-to-string (- (id first) 1)) ; lte, not lt
-                    ""))
+         (first-id (get-id-before-date :server server
+                                       :channel channel
+                                       :host host
+                                       :nick nick
+                                       :message message
+                                       :date-from date-from
+                                       :date-to skip-to))
+         (from-id (if first-id
+                      (write-to-string first-id)
+                      "0"))
          (redirect-to (create-url url
                                   (acons "from-id" from-id query))))
     (hunchentoot:redirect redirect-to)))
