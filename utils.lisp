@@ -105,6 +105,14 @@ and second offsets as values."
 (defparameter +search-date-format+
   `(:year "-" (:month 2) "-" (:day 2) "T" (:hour 2) ":" (:min 2) ":" (:sec 2)))
 
+(defun format-date (date timezone)
+  "Format date for display."
+  (local-time:format-timestring
+   nil
+   (local-time:universal-to-timestamp date)
+   :format +display-date-format+
+   :timezone timezone))
+
 ;; Hash table of channels with list of users
 (defvar *users-list*)
 

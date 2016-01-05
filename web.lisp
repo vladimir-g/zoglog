@@ -1,14 +1,5 @@
 (in-package #:zoglog)
 
-;;; Templates
-
-(djula:add-template-directory (asdf:system-relative-pathname "zoglog" "tpl/"))
-(defparameter +base.html+ (djula:compile-template* "base.html"))
-(defparameter +main.html+ (djula:compile-template* "main.html"))
-(defparameter +channel.html+ (djula:compile-template* "channel.html"))
-(defparameter +statistics.html+ (djula:compile-template* "statistics.html"))
-(defparameter +stat-channel.html+ (djula:compile-template* "stat-channel.html"))
-
 (setf hunchentoot:*rewrite-for-session-urls* nil)
 (setf hunchentoot:*session-max-time* 86400)
 
@@ -34,48 +25,13 @@
                                     :timezone timezone)
       nil))
 
-;; Template filters
-
-;; Very simple URL regex
-(defparameter +url-regex+ (cl-ppcre:create-scanner
-                           "\\b(((ftp|http)s?|file)://[^\\s]+)"))
-
-(defun replace-with-link (target-string
-                          start
-                          end
-                          match-start
-                          match-end
-                          reg-starts
-                          reg-ends)
-  "Replace link with html. TODO: url-encode href properly."
-  (declare (ignore start end reg-starts reg-ends))
-  (format nil "<a rel=\"nofollow\" href=\"~a\">~:*~a</a>"
-          (subseq target-string
-                  match-start
-                  match-end)))
-
-(djula::def-filter :linkify (it)
-   (cl-ppcre:regex-replace-all +url-regex+
-                               (hunchentoot:escape-for-html it)
-                               #'replace-with-link))
-
-(defmacro render-template (template &rest args)
-  "Render djula template and inject additional arguments."
-  `(djula:render-template* ,template nil
-                           ,@args
-                           :active-menu-item nil
-                           :timezones +timezone-names+
-                           :current-url (hunchentoot:request-uri*)
-                           :selected-tz (get-selected-tz
-                                         hunchentoot:*request*)))
-
 ;;; Handlers
 (defun return-404 ()
   (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+))
 
 (hunchentoot:define-easy-handler (main :uri "/") ()
   "Main page, display list of channels with servers."
-  (render-template +main.html+ :channels (get-all-channels)))
+  (render-template #'main-tpl (list :channels (get-all-channels))))
 
 (hunchentoot:define-easy-handler (set-timezone :uri "/set-timezone/")
     (timezone return-path)
@@ -144,9 +100,6 @@
                                 (write-to-string from-id)
                                 query))
              id))))
-
-;; Maximum log entries on one page
-(defvar *log-display-limit* 1000)
 
 (defun nullable-str (string)
   (if (= (length string) 0)
@@ -220,7 +173,7 @@
                (setf right-id (id (elt messages (- length 2))))))
             ;; Have no previous messages, only one message or list of
             ;; newest messages
-            (t 
+            (t
              (setf messages-list (slice-list messages 0 limit))
              (when (>= length (+ 1 limit))
                (setf right-id (id (car (last messages-list)))))))
@@ -378,44 +331,32 @@
                                  :messages messages
                                  :sort sort
                                  :limit limit)
-            ;; Slice list to limit,
-            ;; format dates and addd nick colors (djula can't call methods)
-            (let ((messages-list (mapcar #'(lambda (e)
-                                             (set-nick-color e)
-                                             (format-date e lt-tz)
-                                             e)
-                                         messages-list)))
-              (render-template +channel.html+
-                               :messages messages-list
-                               :server server
-                               :channel channel
-                               :host host
-                               :nick nick
-                               :message message
-                               :date-from (format-search-date
-                                           date-from
-                                           lt-tz)
-                               :date-to (format-search-date
-                                         date-to
-                                         lt-tz)
-                               :limit limit
-                               :max-limit *log-display-limit*
-                               :default-limit *default-log-limit*
-                               :newest-url (hunchentoot:script-name*)
-                               :newest-link newest-link
-                               :oldest-link oldest-link
-                               :to-id to-id
-                               :from-id from-id
-                               :newer-link newer-link
-                               :older-link older-link))))))))
+              (render-template #'channel-tpl
+                               (list :messages messages-list
+                                     :server server
+                                     :channel channel
+                                     :host host
+                                     :nick nick
+                                     :message message
+                                     :date-from date-from
+                                     :date-to date-to
+                                     :timezone lt-tz
+                                     :limit limit
+                                     :newest-url (hunchentoot:script-name*)
+                                     :newest-link newest-link
+                                     :oldest-link oldest-link
+                                     :to-id to-id
+                                     :from-id from-id
+                                     :newer-link newer-link
+                                     :older-link older-link))))))))
 
 
 ;; Statistics
 (hunchentoot:define-easy-handler (statistics :uri "/statistics/") ()
   "Show main statistics page with channel list."
-  (render-template +statistics.html+
-                   :channels (get-all-channels)
-                   :active-menu-item "statistics"))
+  (render-template #'statistics-tpl
+                   (list :channels (get-all-channels)
+                         :active-menu-item "statistics")))
 
 ;;; Channel statistics page
 (defparameter +stat-regex+ (cl-ppcre:create-scanner
@@ -432,7 +373,6 @@
     (list
      :users (loop for item in stats
                collect (list
-                        :color (get-nick-color-hsl (car item))
                         :nick (car item)
                         :messages (cadr item)
                         :share (if (plusp count)
@@ -457,11 +397,11 @@
              (message-stats (prepare-message-stats
                              (get-message-stats :server server
                                                 :channel channel))))
-        (render-template +stat-channel.html+
-                         :server server
-                         :channel channel
-                         :message-stats message-stats
-                         :active-menu-item "statistics")))))
+        (render-template #'stat-channel-tpl
+                         (list :server server
+                               :channel channel
+                               :message-stats message-stats
+                               :active-menu-item "statistics"))))))
 
 ;;; Startup code
 
@@ -486,4 +426,3 @@
   (when *acceptor*
     (hunchentoot:stop *acceptor*)
     (setf *acceptor* nil)))
-

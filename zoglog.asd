@@ -11,7 +11,7 @@
                  #:local-time
                  #:hunchentoot
                  #:bordeaux-threads
-                 #:djula
+                 #:cl-who
                  #:vom
                  #:cl-ppcre
                  #:flexi-streams)
@@ -20,6 +20,14 @@
                  (:file "database")
                  (:file "irc-messages")
                  (:file "irc")
+                 (:module "tpl"
+                          :serial t
+                          :components ((:file "templates")
+                                       (:file "base-tpl")
+                                       (:file "main-tpl")
+                                       (:file "statistics-tpl")
+                                       (:file "stat-channel-tpl")
+                                       (:file "channel-tpl")))
                  (:file "web")
                  (:file "zoglog"))
     :in-order-to ((asdf:test-op (asdf:test-op :zoglog-test))))
