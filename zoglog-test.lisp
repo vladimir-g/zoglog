@@ -8,7 +8,8 @@
 
 ;; Run all test suites
 (defun run-tests ()
-  (run! 'irc-messages-tests))
+  (run! 'irc-messages-tests)
+  (run! 'stat-tests))
 
 ;;; Message parsing tests
 (def-suite irc-messages-tests
@@ -150,3 +151,40 @@
       ;; User must be removed from users list
       (zoglog::process msg)
       (is (null (gethash "#channel2" zoglog::*users-list*))))))
+
+
+;;; Statistics calculation tests
+(def-suite stat-tests
+    :description "Test suite for channel statistics")
+
+(in-suite stat-tests)
+
+(test statistics
+  (let* ((stats '(("u-1" 5432) ("u-2" 1230) ("u-3" 4) ("u-4" 0)))
+         (result (zoglog::prepare-message-stats stats)))
+    (is (= (length (getf result :users)) 4))
+    (is (= (getf result :count) (+ 5432 1230 4)))
+    (is (= (getf result :active-count) 3))
+    (is (= (getf result :all-count) 4))
+    (loop for user in (getf result :users)
+       for nick in '("u-1" "u-2" "u-3" "u-4")
+       for count in '(5432 1230 4 0)
+       with overall = (+ 5432 1230 4 0)
+       do (progn
+            (is (equal (getf user :nick) nick))
+            (is (= (getf user :messages) count))
+            (is (= (getf user :share) (* 100 (/ count overall))))))))
+
+(test statistics-empty
+  (let* ((stats '(("u-1" 0) ("u-2" 0) ("u-3" 0) ("u-4" 0)))
+         (result (zoglog::prepare-message-stats stats)))
+    (is (= (length (getf result :users)) 4))
+    (is (= (getf result :count) 0))
+    (is (= (getf result :active-count) 0))
+    (is (= (getf result :all-count) 4))
+    (loop for user in (getf result :users)
+       for nick in '("u-1" "u-2" "u-3" "u-4")
+       do (progn
+            (is (equal (getf user :nick) nick))
+            (is (= (getf user :messages) 0))
+            (is (= (getf user :share) 0))))))
