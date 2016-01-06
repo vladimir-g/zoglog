@@ -374,7 +374,7 @@
                         :nick (car item)
                         :messages (cadr item)
                         :share (if (plusp count)
-                                   (float (* 100 (/ (cadr item) count)))
+                                   (* 100 (/ (cadr item) count))
                                    0))
                when (> (cadr item) 0)
                  do (incf active-count)
