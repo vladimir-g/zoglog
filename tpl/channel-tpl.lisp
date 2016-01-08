@@ -107,7 +107,7 @@
     (let ((date-from (format-search-date date-from (getf args :timezone)))
           (date-to (format-search-date date-to (getf args :timezone))))
       (cl-who:with-html-output-to-string (s nil :indent t)
-        ((:div :class "well" "well-sm")
+        ((:div :class "well well-sm")
 
          ((:form :id "filter-form"
                  :class "form-inline"
