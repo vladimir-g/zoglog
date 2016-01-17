@@ -9,7 +9,8 @@
 ;; Run all test suites
 (defun run-tests ()
   (run! 'irc-messages-tests)
-  (run! 'stat-tests))
+  (run! 'stat-tests)
+  (run! 'pagination-tests))
 
 ;;; Message parsing tests
 (def-suite irc-messages-tests
@@ -152,7 +153,6 @@
       (zoglog::process msg)
       (is (null (gethash "#channel2" zoglog::*users-list*))))))
 
-
 ;;; Statistics calculation tests
 (def-suite stat-tests
     :description "Test suite for channel statistics")
@@ -188,3 +188,26 @@
             (is (equal (getf user :nick) nick))
             (is (= (getf user :messages) 0))
             (is (= (getf user :share) 0))))))
+
+;;; Pagination tests
+(def-suite pagination-tests
+    :description "Test suite for message pagination")
+
+(in-suite pagination-tests)
+
+(test pager-links
+  (let* ((hunchentoot::*acceptor* (make-instance 'hunchentoot:acceptor))
+         (hunchentoot::*reply* (make-instance 'hunchentoot:reply))
+         (request
+          (make-instance
+           'hunchentoot:request
+           :headers-in '()
+           :uri "/path/?from-id=12345&nick=tester&limit=20"))
+         (older-id 12344)
+         (newer-id 12365))
+    (multiple-value-bind (newer-link older-link newest-link oldest-link)
+        (zoglog::get-pager-links request older-id newer-id)
+      (is (equal "/path/?from-id=12365&nick=tester&limit=20" newer-link))
+      (is (equal "/path/?to-id=12344&nick=tester&limit=20" older-link))
+      (is (equal "/path/?from-id=0&nick=tester&limit=20" oldest-link))
+      (is (equal "/path/?nick=tester&limit=20" newest-link)))))
