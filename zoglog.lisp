@@ -126,7 +126,8 @@
           (init-db)
           (start-logging (getf *config* :servers))
           ;; Setup hunchentoot logging
-          (start-web (getf *config* :web-port))
+          (start-web (getf *config* :web-port)
+                     (getf *config* :web-listen-addr))
           (setup-web-log (getf *config* :web-log)))
         (progn
           (vom:info "Config not found.")

@@ -14,6 +14,8 @@
                   :encoding :utf-8)))
  ;; Hunchentoot listen port (optional)
  :web-port 4242
+ ;; Hunchentoot listen address (optional, default nil/all)
+ :web-listen-addr "127.0.0.1"
  ;; Log file path
  :log-path "/tmp/zog.log"
  :web-log "/tmp/hunch.log"
