@@ -2,7 +2,8 @@
 (in-package #:cl-user)
 
 (defpackage #:zoglog-test
-  (:use #:cl #:fiveam #:zoglog))
+  (:use #:cl #:fiveam #:zoglog)
+  (:export #:run-tests))
 
 (in-package #:zoglog-test)
 
