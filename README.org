@@ -36,7 +36,7 @@ Stop all services with =stop= function:
 #+END_SRC
 
 Application starts one thread per IRC server (described in config) and
-a web interace server (listening all addresses on port 4242 by
+a web interface server (listening all addresses on port 4242 by
 default).
 
 Logging and web interface also could be managed separately using other
@@ -120,7 +120,7 @@ Or run tests directly:
 ZOGLOG was made just for fun, it's code isn't very good and not fully
 tested, use it on your own risk (or don't use at all).
 
-Name comes from popular conspirancy theories (and jokes) about
+Name comes from popular conspiracy theories (and jokes) about
 all-seeing ZOG, don't take it seriously. Author doesn't think that
 real ZOG exists /but that is his problem/.
 
