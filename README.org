@@ -100,6 +100,21 @@ instance.
             :utf-8)
 #+END_SRC
 
+** Tests
+
+Some tests reside in =zoglog-test= system. They can be run by invoking
+ASDF test-system:
+
+#+BEGIN_SRC lisp
+(asdf:test-system :zoglog)
+#+END_SRC
+
+Or run tests directly:
+
+#+BEGIN_SRC lisp
+(zoglog-test:run-tests)
+#+END_SRC
+
 ** About
 
 ZOGLOG was made just for fun, it's code isn't very good and not fully
