@@ -363,26 +363,6 @@
 (defun match-stat-page (request)
   (match-channel-regex +stat-regex+ request))
 
-(defun prepare-message-stats (stats)
-  "Process message stats data."
-  (let ((count (loop for i in stats sum (cadr i)))
-        (active-count 0)
-        (all-count 0))
-    (list
-     :users (loop for item in stats
-               collect (list
-                        :nick (car item)
-                        :messages (cadr item)
-                        :share (if (plusp count)
-                                   (* 100 (/ (cadr item) count))
-                                   0))
-               when (> (cadr item) 0)
-                 do (incf active-count)
-               do (incf all-count))
-     :count count
-     :active-count active-count
-     :all-count all-count)))
-
 (hunchentoot:define-easy-handler (channel-stat :uri #'match-stat-page) ()
   "Display channel statistics page."
   (destructuring-bind (server channel)
@@ -391,14 +371,13 @@
       (unless (channel-exists-p server channel)
         (return-404)
         (return-from channel-stat nil))
-      (let* ((channel (format nil "#~a" channel))
-             (message-stats (prepare-message-stats
-                             (get-message-stats :server server
-                                                :channel channel))))
+      (let* ((channel (format nil "#~a" channel)))
         (render-template #'stat-channel-tpl
                          (list :server server
                                :channel channel
-                               :message-stats message-stats
+                               :message-stats (get-message-stats
+                                               :server server
+                                               :channel channel)
                                :active-menu-item "statistics"))))))
 
 ;;; Startup code

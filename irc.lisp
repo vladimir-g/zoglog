@@ -134,6 +134,8 @@
                    &optional extra-commands encoding)
   "Run logging loop for specified server."
   (update-db-channels server channels)
+  (loop for channel in channels do
+       (load-statistics server (format nil "#~a" channel)))
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
                  (logger-was-kicked #'restart-kicked)
                  (message-parse-error #'restart-message-parse-error)

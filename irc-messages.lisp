@@ -301,6 +301,11 @@
                    :message message
                    :message-type "PRIVMSG")))
 
+(defmethod process ((msg privmsg-message))
+  (with-accessors ((server server) (channel channel) (nick nick)) msg
+    ;; Increment message counter
+    (incf-message-count :server server :channel channel :nick nick)))
+
 (defmethod print-object ((msg privmsg-message) stream)
   "Print PRIVMSG object."
   (print-unreadable-object (msg stream :type t :identity t)
@@ -350,6 +355,8 @@
   "Initialize PRIVMSG action object, parse ACTION."
   (with-accessors ((message message) (action action)) msg
     (setf action (subseq (string-trim '(#\u001) message) 7))))
+
+(defmethod process ((msg action-message)))
 
 (defmethod save ((msg action-message))
   (with-accessors ((channel channel) (action action)) msg

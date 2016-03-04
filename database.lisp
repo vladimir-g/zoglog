@@ -273,7 +273,7 @@
 	       size)
        server channel event-id :column)))))
 
-(defun get-message-stats (&key server channel)
+(defun get-db-message-stats (&key server channel)
   "Get PRIVMSG and NOTICE messages count for every nick on channel."
   (with-db
     (postmodern:query

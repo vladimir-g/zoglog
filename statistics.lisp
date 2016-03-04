@@ -1,0 +1,66 @@
+;;; Message statistics processing with in-memory cache
+(in-package #:zoglog)
+
+(defvar *message-stats* (make-hash-table :test #'equal))
+(defvar *message-stats-lock* (bt:make-lock "stats"))
+
+(defun load-statistics (server channel)
+  "Load stats for channel from database and fill memory cache."
+  (let ((db-stats (get-db-message-stats :server server :channel channel))
+        (stats (make-hash-table :test #'equal)))
+    (loop for row in db-stats
+       do (setf (gethash (car row) stats) (cadr row)))
+    (bt:with-lock-held (*message-stats-lock*)
+      (setf (gethash (cons server channel) *message-stats*) stats))
+    stats))
+
+(defun get-cached-statistics (&key server channel)
+  "Get copy of cached stats for channel from memory."
+  (bt:with-lock-held (*message-stats-lock*)
+    (let ((stats (gethash (cons server channel) *message-stats*)))
+      (when stats
+        (copy-hash-table stats)))))
+
+(defun prepare-message-stats (stats)
+  "Process message stats data for channel."
+  (let ((count (loop for i being the hash-values of stats sum i))
+        (active-count 0)
+        (all-count 0))
+    (list
+     :users (loop for nick being the hash-keys in stats
+               using (hash-value messages)
+               collect (list
+                        :nick nick
+                        :messages messages
+                        :share (if (plusp count)
+                                   (* 100 (/ messages count))
+                                   0))
+               when (> messages 0)
+               do (incf active-count)
+               do (incf all-count))
+     :count count
+     :active-count active-count
+     :all-count all-count)))
+
+(defun incf-message-count (&key server channel nick)
+  "Increment message count for user on channel."
+  (bt:with-lock-held (*message-stats-lock*)
+    (incf (gethash nick
+                   (gethash (cons server channel) *message-stats*)
+                   0))))
+
+(defun get-message-stats (&key server channel)
+  "Get processed message statistics from cache. Stats hash must be
+already filled when LOG-SERVER started, so loading from db in this
+function needed only as fallback and allowed when web interface
+started without logger threads."
+  (let ((stats (get-cached-statistics :server server :channel channel)))
+    (unless stats
+      (setf stats (load-statistics server channel)))
+    (prepare-message-stats stats)))
+
+(defun clear-stats-cache ()
+  "Remove all entries from message stats cache."
+  (bt:with-lock-held (*message-stats-lock*)
+    (loop for k being the hash-keys of *message-stats*
+       do (remhash k *message-stats*))))

@@ -138,6 +138,7 @@
   "Stop all loggers and web interface, close logs."
   (stop-web)
   (stop-logging)
+  (clear-stats-cache)
   (when *hunch-log*
     (close *hunch-log*)
     (setf *hunch-log* nil))

@@ -18,6 +18,7 @@
     :components ((:file "package")
                  (:file "utils")
                  (:file "database")
+                 (:file "statistics")
                  (:file "irc-messages")
                  (:file "irc")
                  (:module "tpl"
