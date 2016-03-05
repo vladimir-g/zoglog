@@ -150,6 +150,7 @@
 ;; QUIT instance also contains list of channels which user has leaved
 (test quit
   (let ((zoglog::*users-list* (make-hash-table :test #'equal)))
+    (vom:config t :info)
     (zoglog::add-to-users-list "#channel2" '("user"))
     (let ((msg (parse-message ":user!~user@domain.tld QUIT :Pong timeout")))
       (is (equal "user!~user@domain.tld" (zoglog::prefix msg)))
