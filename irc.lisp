@@ -134,8 +134,7 @@
                    &optional extra-commands encoding)
   "Run logging loop for specified server."
   (update-db-channels server channels)
-  (loop for channel in channels do
-       (load-statistics server (format nil "#~a" channel)))
+  (loop for channel in channels do (load-statistics server channel))
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
                  (logger-was-kicked #'restart-kicked)
                  (message-parse-error #'restart-message-parse-error)
@@ -154,11 +153,11 @@
                (unwind-protect
                     (progn
                       (set-nick stream nick)
-                      (send-cmd stream "JOIN ~{#~a~^,~}" channels)
+                      (send-cmd stream "JOIN ~{~a~^,~}" channels)
                       (when extra-commands
                         (loop for cmd in extra-commands
                              do (send-cmd stream cmd)))
-                      (vom:info "Connected to: ~{#~a~^,~}" channels)
+                      (vom:info "Connected to: ~{~a~^,~}" channels)
                       (do ((line
                             (read-line stream nil)
                             (read-line stream nil)))
@@ -184,7 +183,7 @@
                                 (progn
                                   (setf nick (concatenate 'string nick "-"))
                                   (set-nick stream nick)
-                                  (send-cmd stream "JOIN ~{#~a~^,~}"
+                                  (send-cmd stream "JOIN ~{~a~^,~}"
                                             channels)))))))
                  (close stream)
                  (usocket:socket-close socket))

@@ -76,9 +76,7 @@ ready(function () {
          // Load nick list from server
         var req = new XMLHttpRequest();
         var server = encodeURIComponent(nickInput.dataset.server);
-        var channel = encodeURIComponent(
-            nickInput.dataset.channel.substring(1) // First char is #
-        );
+        var channel = encodeURIComponent(nickInput.dataset.channel);
         req.open('GET',
                  '/nicknames/?server=' + server + '&channel=' + channel);
         req.addEventListener('load', function () {

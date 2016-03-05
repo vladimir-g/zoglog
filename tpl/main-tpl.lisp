@@ -18,7 +18,7 @@
                                        (hunchentoot:url-encode
                                         (server-id channel))
                                        (hunchentoot:url-encode
-                                        (name channel)))
+                                        (subseq (name channel) 1)))
                          :class "list-group-item"
                          (:strong :class "text-primary"
-                                  (cl-who:fmt "#~a" (name channel))))))))))
+                                  (cl-who:str (name channel))))))))))

@@ -129,6 +129,7 @@
                        ":user!~~user@domain.tld PRIVMSG #channel1 :~a"
                        act))
          (msg (parse-message line)))
+    (setf (zoglog::channels msg) '("#channel1"))
     (is (equal "user!~user@domain.tld" (zoglog::prefix msg)))
     (is (equal "#channel1" (zoglog::channel msg)))
     (is (equal "PRIVMSG" (zoglog::command msg)))

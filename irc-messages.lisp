@@ -171,7 +171,8 @@
 
 (defmethod save ((msg nick-message))
   (dolist (ch (channels msg))
-    (save-instance msg :channel (format nil "#~a" ch)
+    (save-instance msg
+                   :channel ch
                    :message (message msg)
                    :message-type "NICK")))
 
@@ -212,7 +213,8 @@
 
 (defmethod save ((msg quit-message))
   (dolist (ch (quit-channels msg))
-    (save-instance msg :channel ch
+    (save-instance msg
+                   :channel ch
                    :message (message msg)
                    :message-type "QUIT")))
 
@@ -248,8 +250,7 @@
     (setf channel (pop args))))
 
 (defmethod save-p ((msg channel-message))
-  (when (find (string-left-trim "#" (channel msg))
-              (channels msg) :test #'equal)
+  (when (find (channel msg) (channels msg) :test #'equal)
     t))
 
 (defmethod print-object ((msg channel-message) stream)

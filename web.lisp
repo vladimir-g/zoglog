@@ -51,7 +51,7 @@
     (return-from channel-nicks nil))
   (format nil "~{~a~^~%~}"
           (get-nicks :server server
-                     :channel (format nil "#~a" channel))))
+                     :channel channel)))
 
 (defun redirect-to-date (&key request server channel date-to date-from
                            nick host message skip-to lt-tz limit)
@@ -256,13 +256,12 @@
   "Display filtered channel log."
   (destructuring-bind (server channel)
       (map 'list #'(lambda (x) x) (match-channel-page hunchentoot:*request*))
-    (progn
+    (let ((channel (format nil "#~a" channel)))
       ;; Show 404 if channel not found
       (unless (channel-exists-p server channel)
         (return-404)
         (return-from channel-log nil))
-      (let* ((channel (format nil "#~a" channel))
-             (tz (get-selected-tz hunchentoot:*request*))
+      (let* ((tz (get-selected-tz hunchentoot:*request*))
              (tz-offset (get-offset tz))
              (lt-tz (local-time::%make-simple-timezone tz tz tz-offset)))
         ;; Validate filter parameters
@@ -367,18 +366,17 @@
   "Display channel statistics page."
   (destructuring-bind (server channel)
       (map 'list #'(lambda (x) x) (match-stat-page hunchentoot:*request*))
-    (progn
+    (let ((channel (format nil "#~a" channel)))
       (unless (channel-exists-p server channel)
         (return-404)
         (return-from channel-stat nil))
-      (let* ((channel (format nil "#~a" channel)))
-        (render-template #'stat-channel-tpl
-                         (list :server server
-                               :channel channel
-                               :message-stats (get-message-stats
-                                               :server server
-                                               :channel channel)
-                               :active-menu-item "statistics"))))))
+      (render-template #'stat-channel-tpl
+                       (list :server server
+                             :channel channel
+                             :message-stats (get-message-stats
+                                             :server server
+                                             :channel channel)
+                             :active-menu-item "statistics")))))
 
 ;;; Startup code
 
