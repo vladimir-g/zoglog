@@ -99,10 +99,10 @@
 ;; Setup logging
 (setf vom:*log-hook*
   (lambda (level package package-level)
-    (declare (ignore level package-level package))
-    (if *log-stream*
-        (values t *standard-output* *log-stream*)
-        (values t *standard-output*))))
+    (declare (ignore level package-level))
+    (if (and *log-stream* (eq package :zoglog))
+        (values t *log-stream*)
+        (values t))))
 
 ;; Setup database if config provided
 (defun setup-database (&optional (config *config*))
