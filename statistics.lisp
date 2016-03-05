@@ -1,8 +1,19 @@
 ;;; Message statistics processing with in-memory cache
 (in-package #:zoglog)
 
+(defvar *message-stats* (make-hash-table :test #'equal
+                                         #+sbcl :synchronized #+sbcl t))
+
 (defvar *message-stats* (make-hash-table :test #'equal))
+
 (defvar *message-stats-lock* (bt:make-lock "stats"))
+
+(defmacro with-stats-lock (&body body)
+  "Execute BODY with lock on implementations where lock is
+required. CCL and SBCL (with :synchronized t) have lock-free
+hash-tables."
+  #+(or ccl sbcl) `(progn ,@body)
+  #-(or ccl sbcl) `(bt:with-lock-held (*message-stats-lock*) ,@body))
 
 (defun load-statistics (server channel)
   "Load stats for channel from database and fill memory cache."
@@ -10,13 +21,13 @@
         (stats (make-hash-table :test #'equal)))
     (loop for row in db-stats
        do (setf (gethash (car row) stats) (cadr row)))
-    (bt:with-lock-held (*message-stats-lock*)
+    (with-stats-lock
       (setf (gethash (cons server channel) *message-stats*) stats))
     stats))
 
 (defun get-cached-statistics (&key server channel)
   "Get copy of cached stats for channel from memory."
-  (bt:with-lock-held (*message-stats-lock*)
+  (with-stats-lock
     (let ((stats (gethash (cons server channel) *message-stats*)))
       (when stats
         (copy-hash-table stats)))))
@@ -44,7 +55,7 @@
 
 (defun incf-message-count (&key server channel nick)
   "Increment message count for user on channel."
-  (bt:with-lock-held (*message-stats-lock*)
+  (with-stats-lock
     (incf (gethash nick
                    (gethash (cons server channel) *message-stats*)
                    0))))
@@ -61,6 +72,6 @@ started without logger threads."
 
 (defun clear-stats-cache ()
   "Remove all entries from message stats cache."
-  (bt:with-lock-held (*message-stats-lock*)
+  (with-stats-lock
     (loop for k being the hash-keys of *message-stats*
        do (remhash k *message-stats*))))
