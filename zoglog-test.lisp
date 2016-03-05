@@ -27,7 +27,10 @@
   "Parse message with some predefined args."
   (zoglog::parse-message line +channels+ +server+ +logger-nick+))
 
-(defmacro msg-test (name prefix command args nick channel &rest check-forms)
+(defmacro msg-test (name
+                    (prefix command args)
+                    (nick channel)
+                    (&rest check-forms))
   "Create series of tests for attributes of the message."
   (let ((line (format nil ":~a ~a ~a" prefix command args))
         (msg (gensym)))
@@ -44,73 +47,70 @@
                   (let ((func (find-symbol (symbol-name func-name) 'zoglog)))
                     `(is (equal ,check (,func ,msg))))))))))
 
-(msg-test
- privmsg
- "user!~user@domain.tld" "PRIVMSG" "#channel1 :Hello, #channel1!"
- "user" "#channel1"
- (nick "user")
- (host "~user@domain.tld")
- (args '("Hello, #channel1!"))
- (channel "#channel1")
- (message "Hello, #channel1!"))
+(msg-test privmsg
+          ("user!~user@domain.tld" "PRIVMSG" "#channel1 :Hello, #channel1!")
+          ("user" "#channel1")
+          ((nick "user")
+           (host "~user@domain.tld")
+           (args '("Hello, #channel1!"))
+           (channel "#channel1")
+           (message "Hello, #channel1!")))
 
-(msg-test
- notice
- "user!~user@domain.tld" "NOTICE" "#channel1 :Notice this"
- "user" "#channel1"
- (nick "user")
- (host "~user@domain.tld")
- (args '("Notice this"))
- (channel "#channel1")
- (message "Notice this"))
+(msg-test notice
+          ("user!~user@domain.tld" "NOTICE" "#channel1 :Notice this")
+          ("user" "#channel1")
+          ((nick "user")
+           (host "~user@domain.tld")
+           (args '("Notice this"))
+           (channel "#channel1")
+           (message "Notice this")))
 
-(msg-test
- join
- "user!~user@domain.tld" "JOIN" ":#channel1"
- "user" "#channel1"
- (nick "user")
- (host "~user@domain.tld")
- (channel "#channel1"))
+(msg-test join
+          ("user!~user@domain.tld" "JOIN" ":#channel1")
+          ("user" "#channel1")
+          ((nick "user")
+           (host "~user@domain.tld")
+           (channel "#channel1")))
 
-(msg-test
- part
- "user!~user@domain.tld" "PART" "#channel1 :Bye, all!"
- "user" "#channel1"
- (nick "user")
- (host "~user@domain.tld")
- (args '("Bye, all!"))
- (channel "#channel1")
- (message "Bye, all!"))
+(msg-test part
+          ("user!~user@domain.tld" "PART" "#channel1 :Bye, all!")
+          ("user" "#channel1")
+          ((nick "user")
+           (host "~user@domain.tld")
+           (args '("Bye, all!"))
+           (channel "#channel1")
+           (message "Bye, all!")))
 
-(msg-test
- kick
- "user!~user@domain.tld" "KICK" "#channel1 user2 :was kicked for this post"
- "user" "#channel1"
- (nick "user")
- (host "~user@domain.tld")
- (channel "#channel1")
- (args '("user2" "was kicked for this post"))
- (user "user2")
- (message "was kicked for this post"))
+(msg-test kick
+          ("user!~user@domain.tld"
+           "KICK"
+           "#channel1 user2 :was kicked for this post")
+          ("user" "#channel1")
+          ((nick "user")
+           (host "~user@domain.tld")
+           (channel "#channel1")
+           (args '("user2" "was kicked for this post"))
+           (user "user2")
+           (message "was kicked for this post")))
 
-(msg-test
- nick
- "user!~user@domain.tld" "NICK" ":newnick"
- "user" "#channel1"
- (nick "user")
- (host "~user@domain.tld")
- (args '("newnick"))
- (message "newnick"))
+(msg-test nick
+          ("user!~user@domain.tld" "NICK" ":newnick")
+          ("user" "#channel1")
+          ((nick "user")
+           (host "~user@domain.tld")
+           (args '("newnick"))
+           (message "newnick")))
 
 ;; Numeric messages
-(msg-test
- numeric-simple
- "server.tld" "001" "test-logger :We're an anarchosyndicalist commune."
- "user" "#channel1"
- (nick nil)
- (code 1)
- (host "server.tld")
- (args '("test-logger" "We're an anarchosyndicalist commune.")))
+(msg-test numeric-simple
+          ("server.tld"
+           "001"
+           "test-logger :We're an anarchosyndicalist commune.")
+          ("user" "#channel1")
+          ((nick nil)
+           (code 1)
+           (host "server.tld")
+           (args '("test-logger" "We're an anarchosyndicalist commune."))))
 
 (test numeric-already-in-use
   (let* ((line (format nil
