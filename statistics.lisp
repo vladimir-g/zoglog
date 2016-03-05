@@ -15,6 +15,13 @@ hash-tables."
   #+(or ccl sbcl) `(progn ,@body)
   #-(or ccl sbcl) `(bt:with-lock-held (*message-stats-lock*) ,@body))
 
+(defun compare-user (first second)
+  "Compare two users by message count and nick in reverse order."
+  (cond
+    ((> (getf first :messages) (getf second :messages)) t)
+    ((= (getf first :messages) (getf second :messages))
+     (string-lessp (getf first :nick) (getf second :nick)))))
+
 (defun load-statistics (server channel)
   "Load stats for channel from database and fill memory cache."
   (let ((db-stats (get-db-message-stats :server server :channel channel))
@@ -38,17 +45,20 @@ hash-tables."
         (active-count 0)
         (all-count 0))
     (list
-     :users (loop for nick being the hash-keys in stats
-               using (hash-value messages)
-               collect (list
-                        :nick nick
-                        :messages messages
-                        :share (if (plusp count)
-                                   (* 100 (/ messages count))
-                                   0))
-               when (> messages 0)
-               do (incf active-count)
-               do (incf all-count))
+     :users (progn
+             (stable-sort
+              (loop for nick being the hash-keys in stats
+                 using (hash-value messages)
+                 collect (list
+                          :nick nick
+                          :messages messages
+                          :share (if (plusp count)
+                                     (* 100 (/ messages count))
+                                     0))
+                 when (> messages 0)
+                 do (incf active-count)
+                 do (incf all-count))
+              #'compare-user))
      :count count
      :active-count active-count
      :all-count all-count)))
