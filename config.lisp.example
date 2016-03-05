@@ -7,7 +7,7 @@
  ((localhost-1 . (:server "localhost"
                   :port 6667
                   :nick "test"
-                  :channels ("test1" "test2")
+                  :channels ("#test1" "#test2")
                   ;; Optional commands issued after connect
                   :extra ("PRIVMSG NickServ :IDENTIFY somepassword")
                   ;; Optional flexi-streams, default :utf-8
