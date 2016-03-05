@@ -98,7 +98,7 @@
 (defgeneric process (irc-message)
   (:documentation  "Process received message."))
 
-(defmethod process ((msg irc-message))
+(defmethod process :after ((msg irc-message))
   (vom:debug "~a" msg))
 
 (defgeneric save-p (irc-message)
@@ -153,8 +153,7 @@
            (when (> (length args) 3)
              (let ((channel (elt args 2))
                    (users (split-sequence #\Space (car (slice-list args 3)))))
-               (add-to-users-list channel users))))))
-  (call-next-method))
+               (add-to-users-list channel users)))))))
 
 ;; NICK message
 (defclass nick-message (irc-message)
@@ -378,8 +377,6 @@
   (with-accessors ((message message) (action action)) msg
     (setf action (subseq (string-trim '(#\u001) message) 7))))
 
-(defmethod process ((msg action-message)))
-
 (defmethod save ((msg action-message))
   (with-accessors ((channel channel) (action action)) msg
     (save-instance msg
@@ -418,7 +415,6 @@
 
 (defmethod process ((msg kick-message))
   (with-accessors ((user user) (ch channel) (logger-nick logger-nick)) msg
-    (call-next-method)
     (remove-from-users-list ch (list user))
     (when (string= user logger-nick)
       (error 'logger-was-kicked

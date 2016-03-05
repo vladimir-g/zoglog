@@ -280,7 +280,7 @@
      (:select 'nick
               (:as (:count (:case
                                ((:in 'message-type
-                                     (:set "PRIVMSG" "NOTICE"))
+                                     (:set "PRIVMSG" "NOTICE" "ACTION"))
                                 'id)))
                    'count)
               :from 'events
