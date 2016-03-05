@@ -116,7 +116,6 @@
   (let ((default-conf (asdf:system-relative-pathname "zoglog" "config.lisp")))
     (unless conf-file
       (setf conf-file default-conf))
-    (hunchentoot:reset-session-secret)
     (if (probe-file conf-file)
         (progn
           (read-config conf-file)

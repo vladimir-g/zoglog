@@ -98,6 +98,8 @@
 (defgeneric process (irc-message)
   (:documentation  "Process received message."))
 
+(defmethod process ((msg irc-message)))
+
 (defmethod process :after ((msg irc-message))
   (vom:debug "~a" msg))
 
@@ -323,9 +325,13 @@
                    :message-type "PRIVMSG")))
 
 (defmethod process ((msg privmsg-message))
-  (with-accessors ((server server) (channel channel) (nick nick)) msg
+  (with-accessors ((server server)
+                   (channel channel)
+                   (channels channels)
+                   (nick nick)) msg
     ;; Increment message counter
-    (incf-message-count :server server :channel channel :nick nick)))
+    (when (find (channel msg) (channels msg) :test #'equal)
+      (incf-message-count :server server :channel channel :nick nick))))
 
 (defmethod print-object ((msg privmsg-message) stream)
   "Print PRIVMSG object."

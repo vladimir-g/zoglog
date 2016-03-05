@@ -4,8 +4,6 @@
 (defvar *message-stats* (make-hash-table :test #'equal
                                          #+sbcl :synchronized #+sbcl t))
 
-(defvar *message-stats* (make-hash-table :test #'equal))
-
 (defvar *message-stats-lock* (bt:make-lock "stats"))
 
 (defmacro with-stats-lock (&body body)
