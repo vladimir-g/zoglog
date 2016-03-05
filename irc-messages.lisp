@@ -186,11 +186,13 @@
 
 (defmethod process ((msg nick-message))
   (with-accessors ((nick nick)
+                   (server server)
                    (channels user-channels)
                    (new-nick message)) msg
     ;; Add new nick to channel list and remove old
     (dolist (ch channels)
       (remove-from-users-list ch (list nick))
+      (add-new-user-to-stats :server server :channel ch :nick new-nick)
       (add-to-users-list ch (list new-nick)))))
 
 (defmethod save-p ((msg nick-message)) t)
@@ -290,9 +292,11 @@
   (save-instance msg :channel (channel msg) :message-type "JOIN"))
 
 (defmethod process ((msg join-message))
-  (with-accessors ((nick nick) (channel channel)) msg
+  (with-accessors ((server server) (nick nick) (channel channel)) msg
     ;; Add user to channel users list
-    (add-to-users-list channel (list nick))))
+    (add-to-users-list channel (list nick))
+    ;; Add user to cached channel stats
+    (add-new-user-to-stats :server server :channel channel :nick nick)))
 
 ;; PRIVMSG message
 

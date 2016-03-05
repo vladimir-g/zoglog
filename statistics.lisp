@@ -70,6 +70,16 @@ hash-tables."
                    (gethash (cons server channel) *message-stats*)
                    0))))
 
+(defun add-new-user-to-stats (&key server channel nick)
+  "Add new user to cached message stats hash."
+  (with-stats-lock
+    (let ((count (gethash nick (gethash (cons server channel)
+                                        *message-stats*))))
+      (when (eq count nil)
+        (setf (gethash nick (gethash (cons server channel)
+                                     *message-stats*))
+              0)))))
+
 (defun get-message-stats (&key server channel)
   "Get processed message statistics from cache. Stats hash must be
 already filled when LOG-SERVER started, so loading from db in this
