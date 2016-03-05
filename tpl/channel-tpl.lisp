@@ -293,7 +293,7 @@
                                     (format nil ": ~a" (message msg))))))
                                ((equal (message-type msg) "KICK")
                                 (cl-who:htm
-                                 "kicked " (cl-who:esc (message msg))))
+                                 " kicked " (cl-who:esc (message msg))))
                                ((equal (message-type msg) "NICK")
                                 (cl-who:htm
                                  " is now known as ~a"

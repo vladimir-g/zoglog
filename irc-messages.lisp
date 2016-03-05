@@ -417,6 +417,8 @@
   (with-accessors ((user user) (ch channel) (logger-nick logger-nick)) msg
     (remove-from-users-list ch (list user))
     (when (string= user logger-nick)
+      ;; Save message because condition will break irc loop here
+      (save msg)
       (error 'logger-was-kicked
              :text ch))))
 
