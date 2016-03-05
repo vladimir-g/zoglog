@@ -160,8 +160,16 @@
 
 (in-suite stat-tests)
 
+(defun make-stats-table (users-data)
+  "Create hash with users messages count."
+  (let ((stats (make-hash-table :test #'equal)))
+    (loop for (nick count) in users-data
+       do (setf (gethash nick stats) count))
+    stats))
+
 (test statistics
-  (let* ((stats '(("u-1" 5432) ("u-2" 1230) ("u-3" 4) ("u-4" 0)))
+  (let* ((stats (make-stats-table
+                 '(("u-1" 5432) ("u-2" 1230) ("u-3" 4) ("u-4" 0))))
          (result (zoglog::prepare-message-stats stats)))
     (is (= (length (getf result :users)) 4))
     (is (= (getf result :count) (+ 5432 1230 4)))
@@ -177,7 +185,8 @@
             (is (= (getf user :share) (* 100 (/ count overall))))))))
 
 (test statistics-empty
-  (let* ((stats '(("u-1" 0) ("u-2" 0) ("u-3" 0) ("u-4" 0)))
+  (let* ((stats (make-stats-table
+                 '(("u-1" 0) ("u-2" 0) ("u-3" 0) ("u-4" 0))))
          (result (zoglog::prepare-message-stats stats)))
     (is (= (length (getf result :users)) 4))
     (is (= (getf result :count) 0))
