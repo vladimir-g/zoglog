@@ -161,20 +161,37 @@
   ((message
     :initarg :message
     :accessor message
-    :documentation "New nick.")))
+    :documentation "New nick.")
+   (user-channels
+    :initarg :user-channels
+    :accessor user-channels
+    :documentation "Channels to which user has joined.")))
 
 (defmethod initialize-instance :after ((msg nick-message) &key)
   "Initialize message with contents."
   (with-accessors ((args args)
-                   (message message)) msg
-    (setf message (car args))))
+                   (nick nick)
+                   (message message)
+                   (user-channels user-channels)) msg
+    (setf message (car args))
+    (setf user-channels
+          (find-user-channels nick))))
 
 (defmethod save ((msg nick-message))
-  (dolist (ch (channels msg))
+  (dolist (ch (user-channels msg))
     (save-instance msg
                    :channel ch
                    :message (message msg)
                    :message-type "NICK")))
+
+(defmethod process ((msg nick-message))
+  (with-accessors ((nick nick)
+                   (channels user-channels)
+                   (new-nick message)) msg
+    ;; Add new nick to channel list and remove old
+    (dolist (ch channels)
+      (remove-from-users-list ch (list nick))
+      (add-to-users-list ch (list new-nick)))))
 
 (defmethod save-p ((msg nick-message)) t)
 
