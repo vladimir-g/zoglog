@@ -11,7 +11,8 @@
 (defun run-tests ()
   (run! 'irc-messages-tests)
   (run! 'stat-tests)
-  (run! 'pagination-tests))
+  (run! 'pagination-tests)
+  (run! 'irc-process-tests))
 
 ;;; Message parsing tests
 (def-suite irc-messages-tests
@@ -231,3 +232,49 @@
       (is (equal "/path/?to-id=12344&nick=tester&limit=20" older-link))
       (is (equal "/path/?from-id=0&nick=tester&limit=20" oldest-link))
       (is (equal "/path/?nick=tester&limit=20" newest-link)))))
+
+;;; Message processing tests
+(def-suite irc-process-tests
+    :description "Test suite for IRC message processing")
+
+(in-suite irc-process-tests)
+
+(test user-hash-tables
+  (let* ((channel1 (car +channels+))
+         (channel2 (cadr +channels+))
+         (zoglog::*users-list* (make-hash-table :test #'equal))
+         (zoglog::*message-stats* (make-hash-table :test #'equal)))
+    (flet ((stats () (zoglog::get-cached-statistics :server +server+
+                                                    :channel channel1))
+           (pr (msg) (zoglog::process msg)))
+      ;; Init stat hashes
+      (setf (gethash (cons +server+ channel1) zoglog::*message-stats*)
+            (make-hash-table :test #'equal))
+      (setf (gethash (cons +server+ channel2) zoglog::*message-stats*)
+            (make-hash-table :test #'equal))
+      ;; Join and send some messages
+      (pr (parse-message ":user1!~user@domain.tld JOIN :#channel1"))
+      (pr (parse-message
+           ":user1!~user@domain.tld PRIVMSG #channel1 :Hi, #channel1!"))
+      (pr (parse-message
+           ":user1!~user@domain.tld PRIVMSG #channel1 :Hi, #channel1!"))
+      ;; Check message count in stats
+      (is (equal (gethash "user2" (stats)) nil))
+      ;; Join another user to two channels
+      (pr (parse-message ":user2!~user@domain.tld JOIN :#channel1"))
+      (pr (parse-message ":user2!~user@domain.tld JOIN :#channel2"))
+      ;; Check stats
+      (is (= (gethash "user2" (stats)) 0))
+      (pr (parse-message
+           ":user2!~user@domain.tld PRIVMSG #channel1 :Hi, #channel1!"))
+      (is (= (gethash "user2" (stats)) 1))
+      (is (= (gethash "user1" (stats)) 2))
+      ;; Check users presence in *users-list*
+      (is (equal
+           (sort (copy-list (zoglog::find-user-channels "user2"))
+                 #'string<)
+           +channels+))
+      (is (equal (car (zoglog::find-user-channels "user1")) channel1))
+      ;; Quit and check presence again
+      (pr (parse-message ":user2!~user@domain.tld QUIT :Quit"))
+      (is (equal (zoglog::find-user-channels "user2") nil)))))
