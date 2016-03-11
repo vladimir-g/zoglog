@@ -130,8 +130,8 @@
 
 ;; Main log loop
 
-(defun log-server (server port nick channels
-                   &optional extra-commands encoding)
+(defun log-server (&key server port nick channels
+                   extra-commands encoding (socket-timeout 180))
   "Run logging loop for specified server."
   (update-db-channels server channels)
   (loop for channel in channels do (load-statistics server channel))
@@ -146,6 +146,7 @@
          (restart-case
              (let* ((socket (usocket:socket-connect server
                                                     port
+                                                    :timeout socket-timeout
                                                     :element-type
                                                     'flexi-streams:octet))
                     (stream (make-stream socket encoding))
@@ -154,9 +155,8 @@
                     (progn
                       (set-nick stream nick)
                       (send-cmd stream "JOIN ~{~a~^,~}" channels)
-                      (when extra-commands
-                        (loop for cmd in extra-commands
-                             do (send-cmd stream cmd)))
+                      (loop for cmd in extra-commands
+                         do (send-cmd stream cmd))
                       (vom:info "Connected to: ~{~a~^,~}" channels)
                       (do ((line
                             (read-line stream nil)

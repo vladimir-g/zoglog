@@ -11,7 +11,9 @@
                   ;; Optional commands issued after connect
                   :extra ("PRIVMSG NickServ :IDENTIFY somepassword")
                   ;; Optional flexi-streams, default :utf-8
-                  :encoding :utf-8)))
+                  :encoding :utf-8
+                  ;; Optional socket timeout, default 180 seconds
+                  :socket-timeout 180)))
  ;; Hunchentoot listen port (optional)
  :web-port 4242
  ;; Hunchentoot listen address (optional, default nil/all)

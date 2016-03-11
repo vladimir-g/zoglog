@@ -17,12 +17,7 @@
 (defun create-logging-thread (server-name server-conf)
   "Start logging thread for server SERVER-NAME with SERVER-CONF."
   (bt:make-thread #'(lambda ()
-                      (log-server (getf server-conf :server)
-                                  (getf server-conf :port)
-                                  (getf server-conf :nick)
-                                  (getf server-conf :channels)
-                                  (getf server-conf :extra)
-                                  (getf server-conf :encoding)))
+                      (apply #'log-server server-conf))
                   :initial-bindings (list (cons
                                            '*standard-output*
                                            *standard-output*))

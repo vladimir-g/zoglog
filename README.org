@@ -87,7 +87,7 @@ instance.
 
 - stop-logging () :: stops all running logger threads.
 
-- log-server (server port nick channels &optional extra-commands encoding) :: 
+- log-server (&key server port nick channels extra-commands encoding socket-timeout) ::
      start logging for one server in current thread. Default encoding
      is UTF-8. Example:
 
