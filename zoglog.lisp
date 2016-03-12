@@ -116,6 +116,8 @@
           (read-config conf-file)
           (vom:config t (or (getf *config* :log-level) :info))
           (create-log-file (getf *config* :log-path))
+          (when (getf *config* :read-timeout)
+            (setf *read-timeout* (getf *config* :read-timeout)))
           (setup-database *config*)
           (init-db)
           (start-logging (getf *config* :servers))

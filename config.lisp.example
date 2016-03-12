@@ -14,6 +14,8 @@
                   :encoding :utf-8
                   ;; Optional socket timeout, default 180 seconds
                   :socket-timeout 180)))
+ ;; Socket read timeout
+ :read-timeout 600
  ;; Hunchentoot listen port (optional)
  :web-port 4242
  ;; Hunchentoot listen address (optional, default nil/all)

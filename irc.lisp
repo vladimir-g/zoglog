@@ -3,6 +3,7 @@
 (in-package #:zoglog)
 
 (defparameter *reconnect-timeout* 10)
+(defvar *read-timeout* 600)
 
 (defun make-message (prefix command args raw &optional channels server nick)
   "Create generic irc message object or it's subclass."
@@ -128,6 +129,22 @@
                            (cadr (split-sequence #\: line :count 2)))))
     (send-cmd stream "PONG :~a" data)))
 
+(defun set-read-timeout (socket stream timeout)
+  "Set timeout for read operations on stream. Taken from hunchentoot code."
+  (declare (ignorable socket stream))
+  #+:ecl
+  (setf (sb-bsd-sockets:sockopt-receive-timeout socket) timeout)
+  #+:openmcl
+  (setf (ccl:stream-input-timeout socket) timeout)
+  #+:cmu
+  (setf (lisp::fd-stream-timeout stream) (coerce timeout 'integer))
+  #+:sbcl
+  (setf (sb-impl::fd-stream-timeout stream) (coerce timeout 'single-float))
+  #+:abcl
+  (java:jcall (java:jmethod "java.net.Socket" "setSoTimeout"  "int")
+              socket
+              (* 1000 timeout)))
+
 ;; Main log loop
 
 (defun log-server (&key server port nick channels
@@ -151,6 +168,9 @@
                                                     'flexi-streams:octet))
                     (stream (make-stream socket encoding))
                     (*users-list* (make-hash-table :test #'equal)))
+               (set-read-timeout (usocket:socket socket)
+                                 (flex:flexi-stream-stream stream)
+                                 *read-timeout*)
                (unwind-protect
                     (progn
                       (set-nick stream nick)
