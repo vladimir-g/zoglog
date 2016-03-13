@@ -9,7 +9,7 @@
                   :nick "test"
                   :channels ("#test1" "#test2")
                   ;; Optional commands issued after connect
-                  :extra ("PRIVMSG NickServ :IDENTIFY somepassword")
+                  :extra-commands ("PRIVMSG NickServ :IDENTIFY somepassword")
                   ;; Optional flexi-streams, default :utf-8
                   :encoding :utf-8
                   ;; Optional socket timeout, default 180 seconds
