@@ -266,6 +266,9 @@
                                   "message-nick")
                          :title (when (not (equal (message-type msg) "ACTION"))
                                   (host msg))
+                         :style (format
+                                 nil "color: ~a;"
+                                 (get-nick-color-hsl (nick msg)))
                          (cl-who:esc (nick msg))
                          (when (not (equal (message-type msg) "ACTION"))
                            (cl-who:htm :br))
