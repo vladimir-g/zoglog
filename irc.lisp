@@ -3,7 +3,7 @@
 (in-package #:zoglog)
 
 (defparameter *reconnect-timeout* 10)
-(defvar *read-timeout* 600)
+(defvar *read-timeout* 360)
 
 (defun make-message (prefix command args raw &optional channels server nick)
   "Create generic irc message object or it's subclass."
