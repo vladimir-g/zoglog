@@ -299,7 +299,7 @@
                                  " kicked " (cl-who:esc (message msg))))
                                ((equal (message-type msg) "NICK")
                                 (cl-who:htm
-                                 " is now known as ~a"
+                                 " is now known as"
                                  (:strong
                                   (cl-who:esc (message msg)))))))))))))))
     (cl-who:str (pagination-tpl args)))))
