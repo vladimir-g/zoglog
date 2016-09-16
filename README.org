@@ -14,7 +14,12 @@ PostgreSQL and Common Lisp are required.
 
 Put the source code to the place where ASDF could find it, then
 install required dependencies for =zoglog= package (with [[https://www.quicklisp.org/][Quicklisp]] or
-similar tool).
+similar tool). Create PostgreSQL database, tables and indexes will be
+created automatically on first start. 
+
+Installing PostgresSQL trigram extension is recommended for
+performance (run ~CREATE EXTENSION pg_trgm;~ in postgres shell, must
+be done under superuser account).
 
 Copy =config.lisp.example= somewhere and edit it.
 

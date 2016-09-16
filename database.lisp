@@ -65,6 +65,11 @@
   "Check if table exists."
   (postmodern:query (:select t :from 'pg-tables :where (:= 'tablename name))))
 
+(defun extension-exists (name)
+  "Check if PostgreSQL extension exists."
+  (postmodern:query (:select t :from 'pg-available-extensions
+                             :where (:= 'name name))))
+
 (defun init-db ()
   "Create tables and indexes if they don't exist."
   (with-db
@@ -73,7 +78,15 @@
       (postmodern:query (:create-index 'events_serv_chan_date_idx :on "events"
 				       :fields 'server 'channel 'date))
       (postmodern:query (:create-index 'events_nick_idx :on "events"
-				       :fields 'nick)))
+				       :fields 'nick))
+      ;; Create trigram extension, often fails when user has no
+      ;; superuser rights
+      (ignore-errors (postmodern:query
+                      (:raw "CREATE EXTENSION IF NOT EXISTS pg_trgm")))
+      (when (extension-exists "pg_trgm")
+        (postmodern:query
+         (:raw (format nil "CREATE INDEX events_message_trgm_idx ~
+                            ON events USING GIN (message gin_trgm_ops)")))))
     (unless (table-exists "servers")
       (postmodern:execute (postmodern:dao-table-definition 'server))
       (postmodern:query (:create-unique-index 'servers_name_idx :on "servers"
