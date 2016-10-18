@@ -40,7 +40,7 @@
                 (:label :class "sr-only" "Skip to")
                 (:div :class "input-group input-group-sm"
                       (:input :type "text"
-                              :class "form-control datepicker"
+                              :class "form-control datepicker skip-to-date"
                               :data-min date-from
                               :data-max date-to
                               :name "skip-to-date"

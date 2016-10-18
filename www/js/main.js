@@ -16,17 +16,47 @@ function getOffset(el) {
     }
 }
 
+// Very simple object merging
+function mergeObj() {
+    if (arguments.length === 0) {
+        return null;
+    }
+    var result = arguments[0];
+    for (var i = 1; i < arguments.length; i++) {
+        for (var key in arguments[i]) {
+            if (arguments[i].hasOwnProperty(key))
+                result[key] = arguments[i][key];
+        }
+    }
+    return result;
+}
+
 ready(function () {
+
     // Initialize rome.js
-    var inputs = document.querySelectorAll('.datepicker');
-    [].forEach.call(inputs, function (input) {
-	rome(input, {
-	    inputFormat: "YYYY-MM-DDTHH:mm:ss",
-	    weekStart: 1,
-	    min: input.dataset.min,
-	    max: input.dataset.max
-	});
-    });
+    var dateConf = {
+	inputFormat: "YYYY-MM-DDTHH:mm:ss",
+	weekStart: 1
+    };
+    var dateFrom = document.getElementById('date-from');
+    var dateTo = document.getElementById('date-to');
+    var skipTo = document.getElementById('skip-to-date');
+
+    rome(dateFrom, mergeObj({
+        dateValidator: rome.val.beforeEq(dateTo)
+    }, dateConf));
+
+    rome(dateTo, mergeObj({
+        dateValidator: rome.val.afterEq(dateFrom)
+    }, dateConf));
+
+    var skipTo = document.querySelectorAll('.skip-to-date')
+    for (var i = 0; i < skipTo.length; i++) {
+        rome(skipTo[i], mergeObj({
+            min: skipTo[i].dataset.min,
+            max: skipTo[i].dataset.max
+        }, dateConf));
+    }
 
     // Show in context
     if (window.location.hash.indexOf('#msg-') === 0) {
