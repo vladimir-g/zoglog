@@ -25,6 +25,12 @@
                                     :timezone timezone)
       nil))
 
+
+;; Don't reconnect to database in web part because it hangs endlessly
+(defmethod hunchentoot:handle-request :around (acceptor request)
+  (let ((*db-reconnect* nil))
+    (call-next-method)))
+
 ;;; Handlers
 (defun return-404 ()
   (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+))

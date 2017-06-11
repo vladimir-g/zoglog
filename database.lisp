@@ -7,23 +7,24 @@
 (defvar *database-password* "zoglog")
 (defvar *database-host* "localhost")
 
+(defparameter *db-reconnect-timeout* 10)
+(defparameter *db-reconnect* t)
+
 (defmacro with-db (&body body)
-  (let ((reconnected (gensym)))
-    `(postmodern:with-connection
+  `(handler-bind
+       ((postmodern:database-connection-error
+         (lambda (c)
+           (vom:error "Database error '~a'" c)
+           (when *db-reconnect*
+             (sleep *db-reconnect-timeout*)
+             (invoke-restart :reconnect)))))
+     (postmodern:with-connection
          `(,*database-name*
            ,*database-user*
            ,*database-password*
            ,*database-host*
            :pooled-p t)
-       (let ((,reconnected nil))
-         (handler-bind
-             ((postmodern:database-connection-error
-               (lambda (c)
-                 (when (not ,reconnected)
-                   (setf ,reconnected t)
-                   (vom:error "Database error '~a', reconnecting" c)
-                   (invoke-restart :reconnect)))))
-           ,@body)))))
+       ,@body)))
 
 (defclass event ()
   ((id :accessor id :col-type serial :initarg :id :primary-key t)
