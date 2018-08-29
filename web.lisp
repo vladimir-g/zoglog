@@ -10,6 +10,13 @@
         (hunchentoot:url-decode selected-tz)
         *default-tz*)))
 
+(defun get-selected-font-family (request)
+  "Get selected font-family from cookie."
+  (let ((font-family (hunchentoot:cookie-in "zoglog-font" request)))
+    (if font-family
+        (hunchentoot:url-decode font-family)
+        *default-font-family*)))
+
 (defun convert-date (string tz-offset)
   "Convert STRING to local-time timestamp or nil."
   (local-time:parse-timestring string
@@ -39,14 +46,20 @@
   "Main page, display list of channels with servers."
   (render-template #'main-tpl (list :channels (get-all-channels))))
 
-(hunchentoot:define-easy-handler (set-timezone :uri "/set-timezone/")
-    (timezone return-path)
-  "Save selected timezone to cookie and redirect user back."
+(defun set-cookie (name value)
+  "Set cookie with path "/" and one year duration."
+  (hunchentoot:set-cookie name
+                          :value (hunchentoot:url-encode value)
+                          :path "/"
+                          :max-age 31536000))
+
+(hunchentoot:define-easy-handler (save-settings :uri "/save-settings/")
+    (timezone font-family return-path)
+  "Save selected timezone and font family to cookies and redirect user back."
   (when (find timezone +timezone-names+ :test #'equal)
-    (hunchentoot:set-cookie "zoglog-tz"
-                            :value (hunchentoot:url-encode timezone)
-                            :path "/"
-                            :max-age 31536000))
+    (set-cookie "zoglog-tz" timezone))
+  (when (find font-family +font-families+ :test #'equal)
+    (set-cookie "zoglog-font" font-family))
   (hunchentoot:redirect return-path))
 
 (hunchentoot:define-easy-handler (channel-nicks :uri "/nicknames/")

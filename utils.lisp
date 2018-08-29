@@ -107,6 +107,9 @@ and second offsets as values."
 
 (defvar *default-tz* "UTC +00:00")
 
+(defparameter +font-families+ '("sans-serif" "monospace"))
+(defvar *default-font-family* "sans-serif")
+
 (defun get-offset (key)
   "Get offset or zero from timezone hash."
   (multiple-value-bind (value present) (gethash key +timezones+)

@@ -11,7 +11,7 @@
       (:title (cl-who:str (getf blocks :title "ZOGLOG")))
       (:link :href "/css/bootstrap.min.css" :rel "stylesheet")
       (:link :href "/css/rome.min.css" :rel "stylesheet")
-      (:link :href "/css/main.css" :rel "stylesheet"))
+      (:link :href "/css/main.css?v=1.0" :rel "stylesheet"))
      (:body
 
       ((:nav :class "navbar navbar-default navbar-static-top")
@@ -25,32 +25,40 @@
                   (:a :href "/statistics/" "Statistics")))
 
         (:form :class "navbar-form navbar-right"
-               :action "/set-timezone/"
+               :id "settings-form"
+               :action "/save-settings/"
                :autocomplete "off"
                (:input :type "hidden"
                        :name "return-path"
                        :value (hunchentoot:request-uri*))
-               ((:div :class "input-group")
+               ((:div :class "input-group input-group-sm")
+                ((:span :class "input-group-addon" :title "Font")
+                 (:span :class "glyphicon glyphicon-font"))
+                (:select
+                 :class "form-control"
+                 :name "font-family"
+                 (select-options
+                  +font-families+
+                  (get-selected-font-family hunchentoot:*request*))))
+               ((:div :class "input-group input-group-sm")
                 ((:span :class "input-group-addon" :title "timezone")
                  (:span :class "glyphicon glyphicon-time"))
                 (:select
                  :class "form-control"
                  :name "timezone"
-                 (loop for zone in +timezone-names+
-                    do (cl-who:htm (:option
-                                    :value zone
-                                    :selected (equal zone
-                                                     (get-selected-tz
-                                                      hunchentoot:*request*))
-                                    (cl-who:str zone)))))
-                (:span :class "input-group-btn"
-                       (:button :class "btn btn-default"
-                                :type "submit"
-                                :title "Set timezone"
-                                (:span :class "glyphicon glyphicon-ok")))))))
+                 (select-options
+                  +timezone-names+
+                  (get-selected-tz hunchentoot:*request*))))
+               (:button :class "btn btn-default btn-sm"
+                        :id "save-settings"
+                        :type "submit"
+                        :title "Save settings"
+                        (:span :class "glyphicon glyphicon-ok")
+                        (:span :class "hidden-sm hidden-md hidden-lg"
+                               "Save settings")))))
 
       (:div :class "container-fluid"
             (cl-who:str (getf blocks :center)))
 
       (:script :src "/js/rome.min.js")
-      (:script :src "/js/main.js")))))
+      (:script :src "/js/main.js?v=1.0")))))

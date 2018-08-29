@@ -24,6 +24,14 @@ nav.paginator {
     padding: 1px;
 }
 
+#settings-form {
+    margin-top: 10px;
+}
+
+#messages-table.monospace {
+    font-family: monospace;
+}
+
 .glyphicon.spinning {
     animation: spin 1s infinite linear;
     -webkit-animation: spin2 1s infinite linear;
@@ -61,6 +69,15 @@ nav.paginator {
 @media (max-width: 768px) {
     .skip-to-date-form .form-group {
 	margin-bottom: 0px;
+    }
+
+    #settings-form .input-group {
+        margin-top: 2px;
+    }
+
+    #settings-form button {
+        margin-top: 2px;
+        width: 100%;
     }
 }
 

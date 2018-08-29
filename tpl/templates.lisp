@@ -29,6 +29,17 @@
                              (intern (symbol-name ',var) "KEYWORD")))))
      ,@body))
 
+(defmacro select-options (list condition)
+  "Create list of option tags with selected value."
+  (let ((item (gensym))
+        (selected (gensym)))
+    `(loop for ,item in ,list
+        with ,selected = ,condition
+        do (cl-who:htm (:option
+                        :value ,item
+                        :selected (equal ,item ,selected)
+                        (cl-who:str ,item))))))
+
 ;; Very simple URL regex
 (defparameter +url-regex+ (cl-ppcre:create-scanner
                            "\\b(((ftp|http)s?|file)://[^\\s]+)"))

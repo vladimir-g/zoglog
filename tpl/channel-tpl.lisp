@@ -43,6 +43,7 @@
                               :class "form-control datepicker skip-to-date"
                               :data-min date-from
                               :data-max date-to
+                              :autocomplete "off"
                               :name "skip-to-date"
                               :placeholder "Skip to date"
                               :value "")
@@ -218,7 +219,11 @@
                   (:span :class "glyphicon glyphicon-stats"))))
     (cl-who:str (filter-tpl args))
     (cl-who:str (pagination-tpl args))
-    ((:table :class "table table-striped table-hover table-condensed")
+    ((:table
+      :id "messages-table"
+      :class (format nil
+                     "table table-striped table-hover table-condensed ~a"
+                     (get-selected-font-family hunchentoot:*request*)))
      (:thead
       (:tr
        (:th :class "col-lg-1" "Date")
