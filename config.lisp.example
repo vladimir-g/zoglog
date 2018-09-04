@@ -5,7 +5,7 @@
  ;; Key is the server name keyword, must be unique
  ;; Value is the server config
  ((localhost-1 . (:server "localhost"
-                  :port 6667
+                  :port 6697
                   :nick "test"
                   :channels ("#test1" "#test2")
                   ;; Optional commands issued after connect
@@ -13,7 +13,9 @@
                   ;; Optional flexi-streams, default :utf-8
                   :encoding :utf-8
                   ;; Optional socket timeout, default 180 seconds
-                  :socket-timeout 180)))
+                  :socket-timeout 180)
+                  ;; Use tls or not, default nil
+                  :tls t))
  ;; Socket read timeout
  :read-timeout 600
  ;; Hunchentoot listen port (optional)

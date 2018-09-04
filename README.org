@@ -92,17 +92,17 @@ instance.
 
 - stop-logging () :: stops all running logger threads.
 
-- log-server (&key server port nick channels extra-commands encoding socket-timeout) ::
+- log-server (&key server port nick channels extra-commands encoding socket-timeout tls) ::
      start logging for one server in current thread. Default encoding
      is UTF-8. Example:
 
 #+BEGIN_SRC lisp
-(log-server "irc.freenode.net"
-            6667
-            "logger"
-            '("channel1" "channel2")
-            '("PRIVMSG NickServ :IDENTIFY somepassword")
-            :utf-8)
+(log-server :server "irc.freenode.net"
+            :port 6667
+            :nick "logger"
+            :channels '("channel1" "channel2")
+            :extra-commands '("PRIVMSG NickServ :IDENTIFY somepassword")
+            :encoding :utf-8)
 #+END_SRC
 
 ** Tests

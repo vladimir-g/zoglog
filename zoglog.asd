@@ -12,6 +12,7 @@
                  #:hunchentoot
                  #:bordeaux-threads
                  #:cl-who
+                 #:cl+ssl
                  #:vom
                  #:cl-ppcre
                  #:flexi-streams)

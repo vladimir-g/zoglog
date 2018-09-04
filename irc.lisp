@@ -103,12 +103,21 @@
   (vom:error "Format encoding error: ~a" c)
   (use-value #\?))
 
-(defun make-stream (socket &optional encoding)
+(defun make-stream (socket &optional encoding tls)
   "Create flexi-stream from socket."
   (let* ((encoding (or encoding :utf-8))
          (stream (usocket:socket-stream socket))
          (fmt (flexi-streams:make-external-format encoding :eol-style :crlf)))
-    (flexi-streams:make-flexi-stream stream :external-format fmt)))
+    (if tls
+        (cl+ssl:make-ssl-client-stream stream :external-format fmt)
+        (flexi-streams:make-flexi-stream stream :external-format fmt))))
+
+(defun make-socket (&key server port timeout tls)
+  (usocket:socket-connect server
+                          port
+                          :timeout timeout
+                          :element-type
+                          (if tls '(unsigned-byte 8) 'flexi-streams:octet)))
 
 (defmacro send-cmd (stream tpl &rest args)
   "Send IRC command through STREAM."
@@ -129,6 +138,13 @@
                            (cadr (split-sequence #\: line :count 2)))))
     (send-cmd stream "PONG :~a" data)))
 
+(defun get-real-stream (stream tls)
+  "Get real stream from flexi or ssl stream for setting timeout."
+  (let ((stream (flex:flexi-stream-stream stream)))
+    (if tls
+        (cl+ssl::ssl-stream-socket stream)
+        stream)))
+
 (defun set-read-timeout (socket stream timeout)
   "Set timeout for read operations on stream. Taken from hunchentoot code."
   (declare (ignorable socket stream))
@@ -148,7 +164,7 @@
 ;; Main log loop
 
 (defun log-server (&key server port nick channels
-                   extra-commands encoding (socket-timeout 180))
+                     extra-commands encoding (socket-timeout 180) tls)
   "Run logging loop for specified server."
   (update-db-channels server channels)
   (loop for channel in channels do (load-statistics server channel))
@@ -161,15 +177,14 @@
                  (error #'restart-unknown-error))
     (loop do
          (restart-case
-             (let* ((socket (usocket:socket-connect server
-                                                    port
-                                                    :timeout socket-timeout
-                                                    :element-type
-                                                    'flexi-streams:octet))
-                    (stream (make-stream socket encoding))
+             (let* ((socket (make-socket :server server
+                                         :port port
+                                         :timeout socket-timeout
+                                         :tls tls))
+                    (stream (make-stream socket encoding tls))
                     (*users-list* (make-hash-table :test #'equal)))
                (set-read-timeout (usocket:socket socket)
-                                 (flex:flexi-stream-stream stream)
+                                 (get-real-stream stream tls)
                                  *read-timeout*)
                (unwind-protect
                     (progn
