@@ -19,6 +19,10 @@
     (cond
       ;; Numeric
       ((numeric-p command) (init-instance 'numeric-message))
+      ;; CAP
+      ((string= command "CAP") (init-instance 'cap-message))
+      ;; AUTHENTICATE
+      ((string= command "AUTHENTICATE") (init-instance 'auth-message))
       ;; PRIVMSG ACTION
       ((and (string= command "PRIVMSG")
             (string-prefix-p (format nil "~CACTION" #\u001) (cadr args)))
@@ -103,6 +107,39 @@
   (vom:error "Format encoding error: ~a" c)
   (use-value #\?))
 
+;; SASL related
+
+(defun server-has-sasl (c)
+  "Server has SASL, continue with authorization."
+  (declare (ignore c))
+  (vom:info "Server has SASL support")
+  (invoke-restart 'authenticate-plain))
+
+(defun server-has-no-sasl (c)
+  "Server has no SASL support, stop authorization process."
+  (declare (ignore c))
+  (vom:info "Server has no SASL support")
+  (invoke-restart 'sasl-finished))
+
+(defun auth-is-allowed (c)
+  "Server returned AUTHENTICATION +, continue with SASL auth."
+  (declare (ignore c))
+  (vom:info "Server allows auth")
+  (invoke-restart 'authenticate-sasl))
+
+(defun auth-is-successful (c)
+  "SASL authentication was successful."
+  (declare (ignore c))
+  (vom:info "Successful SASL authentication")
+  (invoke-restart 'sasl-finished))
+
+(defun auth-is-failed (c)
+  "SASL authentication was successful."
+  (vom:error "SASL auth failed: ~a ~a" (code c) (text c))
+  (invoke-restart 'break-loop))
+
+;; Working with streams and sockets
+
 (defun make-stream (socket &optional encoding tls)
   "Create flexi-stream from socket."
   (let* ((encoding (or encoding :utf-8))
@@ -133,10 +170,16 @@
   (send-cmd stream "USER ~a ~:*~a ~:*~a :~:*~a" nick))
 
 (defun send-pong (stream line)
-  "Send 'PONG' in answer to 'PING' line throuck STREAM."
+  "Send 'PONG' in answer to 'PING' line through STREAM."
   (let ((data (string-trim '(#\space #\return #\newline)
                            (cadr (split-sequence #\: line :count 2)))))
     (send-cmd stream "PONG :~a" data)))
+
+(defun join-channels (stream channels)
+  "Join to list of channels."
+  (when channels
+    (send-cmd stream "JOIN ~{~a~^,~}" channels)
+    (vom:info "Joining to ~{~a~^,~}" channels)))
 
 (defun get-real-stream (stream tls)
   "Get real stream from flexi or ssl stream for setting timeout."
@@ -163,7 +206,7 @@
 
 ;; Main log loop
 
-(defun log-server (&key server port nick channels
+(defun log-server (&key server port nick channels username password
                      extra-commands encoding (socket-timeout 180) tls)
   "Run logging loop for specified server."
   (update-db-channels server channels)
@@ -174,6 +217,13 @@
                  (stream-error #'restart-stream-error)
                  (logger-was-banned #'restart-banned)
                  (flex:external-format-encoding-error #'restart-encoding)
+                 ;; SASL
+                 (has-sasl #'server-has-sasl)
+                 (no-sasl #'server-has-no-sasl)
+                 (auth-allow #'auth-is-allowed)
+                 (sasl-success #'auth-is-successful)
+                 (sasl-failed #'auth-is-failed)
+                 ;; Common error
                  (error #'restart-unknown-error))
     (loop do
          (restart-case
@@ -182,17 +232,20 @@
                                          :timeout socket-timeout
                                          :tls tls))
                     (stream (make-stream socket encoding tls))
-                    (*users-list* (make-hash-table :test #'equal)))
+                    (*users-list* (make-hash-table :test #'equal))
+                    (in-sasl (and username password)))
                (set-read-timeout (usocket:socket socket)
                                  (get-real-stream stream tls)
                                  *read-timeout*)
                (unwind-protect
                     (progn
+                      (when in-sasl
+                        (send-cmd stream "CAP REQ :sasl"))
                       (set-nick stream nick)
-                      (send-cmd stream "JOIN ~{~a~^,~}" channels)
                       (loop for cmd in extra-commands
                          do (send-cmd stream cmd))
-                      (vom:info "Connected to: ~{~a~^,~}" channels)
+                      (unless in-sasl (join-channels stream channels))
+                      ;; Main loop
                       (do ((line
                             (read-line stream nil)
                             (read-line stream nil)))
@@ -209,21 +262,33 @@
                                   (process message)
                                   (when (save-p message)
                                       (save message)))
+                              ;; Restarts
                               (continue () nil)
+                              (authenticate-plain ()
+                                (send-cmd stream "AUTHENTICATE PLAIN"))
+                              (sasl-finished ()
+                                (progn
+                                  (setf in-sasl nil)
+                                  (send-cmd stream "CAP END")
+                                  (join-channels stream channels)))
+                              (authenticate-sasl ()
+                                (send-cmd stream "AUTHENTICATE ~a"
+                                          (sasl-credentials username
+                                                            password)))
                               (join-after-kick (channel)
                                 (progn
                                   (sleep 3)
-                                  (send-cmd stream "JOIN ~a" channel)))
+                                  (join-channels stream (list channel))))
                               (change-nick ()
                                 (progn
                                   (setf nick (concatenate 'string nick "-"))
                                   (set-nick stream nick)
-                                  (send-cmd stream "JOIN ~{~a~^,~}"
-                                            channels)))))))
+                                  (join-channels stream channels)))))))
                  (close stream)
                  (usocket:socket-close socket))
                ;; Do-loop ends when socket disconnected, reconnect after
                ;; timeout
                (vom:info "Reconnecting")
                (sleep *reconnect-timeout*))
-           (restart-loop () nil)))))
+           (restart-loop () nil)
+           (break-loop () (return))))))

@@ -17,6 +17,21 @@
   ((text :initarg :text :reader text)
    (raw :initarg :raw :reader raw)))
 
+(define-condition sasl-failed (error)
+  ((text :initarg :text :reader text)
+   (code :initarg :code :reader code)))
+
+;; Signals for CAP/SASL
+
+(define-condition has-sasl (condition) ())
+
+(define-condition no-sasl (condition) ())
+
+(define-condition auth-allow (condition) ())
+
+(define-condition sasl-success (condition) ())
+
+
 (defun default-message-date ()
   (local-time:now))
 
@@ -130,6 +145,22 @@
                        :server server
                        ,@rest)))))
 
+;; AUTHENTICATE response
+
+(defclass auth-message (irc-message) ())
+
+(defmethod print-object ((msg auth-message) stream)
+  "Princt AUTH message object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: ARGS: '~a'"
+            (date-fmt msg)
+            (args msg))))
+
+(defmethod process ((msg auth-message))
+  (with-accessors ((args args)) msg
+    (when (string= (car args) #\+)
+      (signal 'auth-allow))))
+
 ;; Numeric response
 
 (defclass numeric-message (irc-message)
@@ -155,7 +186,53 @@
            (when (> (length args) 3)
              (let ((channel (elt args 2))
                    (users (split-sequence #\Space (car (slice-list args 3)))))
-               (add-to-users-list channel users)))))))
+               (add-to-users-list channel users))))
+          ((or (= code 903)             ;RPL_SASLSUCCESS
+               (= code 907))            ;ERR_SASLALREADY
+           (signal 'sasl-success))
+          ((or (= code 904)             ;ERR_SASLFAIL
+               (= code 902)             ;ERR_NICKLOCKED
+               (= code 905))            ;ERR_SASLTOOLONG
+           (error 'sasl-failed
+                  :text args
+                  :code code)))))
+
+;; CAP message
+
+(defclass cap-message (irc-message)
+  ((subcommand
+    :initarg :subcommand
+    :accessor subcommand
+    :documentation "CAP subcommand (LS, ACK etc).")
+   (identifiers
+    :initarg :identifiers
+    :accessor identifiers
+    :documentation "Capability identifiers.")))
+
+(defmethod initialize-instance :after ((msg cap-message) &key)
+  "Initialize message with SUBCOMMAND and IDENTIFIERS."
+  (with-accessors ((args args)
+                   (subcommand subcommand)
+                   (identifiers identifiers)) msg
+    (setf subcommand (second args))
+    (setf identifiers
+          (split-sequence #\Space (string-trim '(#\Space) (caddr args))))))
+
+(defmethod print-object ((msg cap-message) stream)
+  "Princt CAP message object."
+  (print-unreadable-object (msg stream :type t :identity t)
+    (format stream "~a: SUBCOMMAND: '~a' IDENTIFIERS: '~a'"
+            (date-fmt msg)
+            (subcommand msg)
+            (identifiers msg))))
+
+(defmethod process ((msg cap-message))
+  (with-accessors ((subcommand subcommand) (identifiers identifiers)) msg
+    (when (member "sasl" identifiers :test #'string=)
+      (cond ((string= subcommand "ACK")
+             (signal 'has-sasl))
+            ((string= subcommand "NAK")
+             (signal 'no-sasl))))))
 
 ;; NICK message
 (defclass nick-message (irc-message)

@@ -15,7 +15,9 @@
                  #:cl+ssl
                  #:vom
                  #:cl-ppcre
-                 #:flexi-streams)
+                 #:flexi-streams
+                 #:cl-base64
+                 #:babel)
     :components ((:file "package")
                  (:file "utils")
                  (:file "database")

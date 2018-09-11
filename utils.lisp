@@ -181,3 +181,14 @@ and second offsets as values."
       (get-nick-color nick)
     (format nil "hsl(~a, ~a%, ~a%)" hue saturation lightness)))
 
+;; SASL credentials
+(defun sasl-credentials (username password)
+  (let ((utf-username (babel:string-to-octets username :encoding :utf-8))
+        (utf-password (babel:string-to-octets password :encoding :utf-8)))
+    (cl-base64:usb8-array-to-base64-string (concatenate
+                                            '(vector (unsigned-byte 8))
+                                            utf-username
+                                            '(0)
+                                            utf-username
+                                            '(0)
+                                            utf-password))))
