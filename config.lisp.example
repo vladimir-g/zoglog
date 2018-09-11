@@ -8,14 +8,17 @@
                   :port 6697
                   :nick "test"
                   :channels ("#test1" "#test2")
+                  ;; Optional username and password for SASL
+                  :username username
+                  :password password
                   ;; Optional commands issued after connect
                   :extra-commands ("PRIVMSG NickServ :IDENTIFY somepassword")
                   ;; Optional flexi-streams, default :utf-8
                   :encoding :utf-8
                   ;; Optional socket timeout, default 180 seconds
-                  :socket-timeout 180)
+                  :socket-timeout 180
                   ;; Use tls or not, default nil
-                  :tls t))
+                  :tls t)))
  ;; Socket read timeout
  :read-timeout 600
  ;; Hunchentoot listen port (optional)

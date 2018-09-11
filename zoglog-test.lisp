@@ -12,7 +12,8 @@
   (run! 'irc-messages-tests)
   (run! 'stat-tests)
   (run! 'pagination-tests)
-  (run! 'irc-process-tests))
+  (run! 'irc-process-tests)
+  (run! 'sasl-tests))
 
 ;;; Message parsing tests
 (def-suite irc-messages-tests
@@ -102,6 +103,47 @@
            (args '("newnick"))
            (message "newnick")))
 
+(msg-test cap
+          ("server.tld"
+           "CAP"
+           "* LIST :multi-prefix one two three")
+          ("user" "#channel1")
+          ((nick nil)
+           (subcommand "LIST")
+           (identifiers '("multi-prefix" "one" "two" "three"))))
+
+(msg-test auth
+          ("server.tld" "AUTHENTICATE" "+")
+          ("user" "#channel1")
+          ((command "AUTHENTICATE")
+           (args '("+"))))
+
+;; AUTHENTICATE signal
+
+(test auth-plus
+  (let* ((msg (parse-message "AUTHENTICATE +")))
+    (is (eq 'zoglog::auth-message (type-of msg)))
+    (signals zoglog::auth-allow (zoglog::process msg))))
+
+;; CAP signals
+(test cap-ack
+  (let* ((line (format nil
+                       ":server.tld CAP ~a ACK :sasl"
+                       +logger-nick+))
+         (msg (parse-message line)))
+    (is (eq 'zoglog::cap-message (type-of msg)))
+    (is (string= "ACK" (zoglog::subcommand msg)))
+    (signals zoglog::has-sasl (zoglog::process msg))))
+
+(test cap-nak
+  (let* ((line (format nil
+                       ":server.tld CAP ~a NAK :sasl"
+                       +logger-nick+))
+         (msg (parse-message line)))
+    (is (eq 'zoglog::cap-message (type-of msg)))
+    (is (string= "NAK" (zoglog::subcommand msg)))
+    (signals zoglog::no-sasl (zoglog::process msg))))
+
 ;; Numeric messages
 (msg-test numeric-simple
           ("server.tld"
@@ -130,6 +172,28 @@
     (is (eq 'zoglog::numeric-message (type-of msg)))
     (is (eq 474 (zoglog::code msg)))
     (signals zoglog::logger-was-banned (zoglog::process msg))))
+
+(test numeric-sasl-success
+  (loop for code in '(903 907) do
+       (let* ((line (format nil
+                            ":server.tld ~a ~a :SASL authentication successful"
+                            code
+                            +logger-nick+))
+              (msg (parse-message line)))
+         (is (eq 'zoglog::numeric-message (type-of msg)))
+         (is (eq code (zoglog::code msg)))
+         (signals zoglog::sasl-success (zoglog::process msg)))))
+
+(test numeric-sasl-failed
+  (loop for code in '(902 904 905) do
+       (let* ((line (format nil
+                            ":server.tld ~a ~a :SASL authentication failed"
+                            code
+                            +logger-nick+))
+              (msg (parse-message line)))
+         (is (eq 'zoglog::numeric-message (type-of msg)))
+         (is (eq code (zoglog::code msg)))
+         (signals zoglog::sasl-failed (zoglog::process msg)))))
 
 ;; ACTION message is really a PRIVMSG with custom args
 (test action
@@ -258,7 +322,7 @@
            ":user1!~user@domain.tld PRIVMSG #channel1 :Hi, #channel1!"))
       (pr (parse-message
            ":user1!~user@domain.tld PRIVMSG #channel1 :Hi, #channel1!"))
-      ;; Check message count in stats
+      ;; Check message count in statsMessage processing tests
       (is (equal (gethash "user2" (stats)) nil))
       ;; Join another user to two channels
       (pr (parse-message ":user2!~user@domain.tld JOIN :#channel1"))
@@ -278,3 +342,15 @@
       ;; Quit and check presence again
       (pr (parse-message ":user2!~user@domain.tld QUIT :Quit"))
       (is (equal (zoglog::find-user-channels "user2") nil)))))
+
+;;; SASL tests
+(def-suite sasl-tests
+    :description "Test suite for SASL authentication")
+
+(in-suite sasl-tests)
+
+(test sasl-credentials
+  (let* ((username "jilles")
+         (password "sesame"))
+    (is (equal (zoglog::sasl-credentials username password)
+               "amlsbGVzAGppbGxlcwBzZXNhbWU="))))

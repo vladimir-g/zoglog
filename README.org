@@ -92,9 +92,11 @@ instance.
 
 - stop-logging () :: stops all running logger threads.
 
-- log-server (&key server port nick channels extra-commands encoding socket-timeout tls) ::
+- log-server (&key server port nick channels username password extra-commands encoding socket-timeout tls) ::
      start logging for one server in current thread. Default encoding
-     is UTF-8. Example:
+     is UTF-8. If ~tls~ is provided, SSL/TLS connection will be
+     used. If ~username~ and ~password~ are provided, SASL
+     authentication will be used. Example:
 
 #+BEGIN_SRC lisp
 (log-server :server "irc.freenode.net"

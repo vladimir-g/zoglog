@@ -190,8 +190,8 @@
           ((or (= code 903)             ;RPL_SASLSUCCESS
                (= code 907))            ;ERR_SASLALREADY
            (signal 'sasl-success))
-          ((or (= code 904)             ;ERR_SASLFAIL
-               (= code 902)             ;ERR_NICKLOCKED
+          ((or (= code 902)             ;ERR_NICKLOCKED
+               (= code 904)             ;ERR_SASLFAIL
                (= code 905))            ;ERR_SASLTOOLONG
            (error 'sasl-failed
                   :text args
