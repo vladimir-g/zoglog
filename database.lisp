@@ -6,6 +6,7 @@
 (defvar *database-user* "zoglog")
 (defvar *database-password* "zoglog")
 (defvar *database-host* "localhost")
+(defvar *database-port* 5432)
 
 (defparameter *db-reconnect-timeout* 10)
 (defparameter *db-reconnect* t)
@@ -23,6 +24,7 @@
            ,*database-user*
            ,*database-password*
            ,*database-host*
+           :port ,*database-port*
            :pooled-p t)
        ,@body)))
 

@@ -33,4 +33,5 @@
  :database-name "zoglog"
  :database-password "zoglog"
  :database-host "localhost"
+ :database-port 5432            ; optional
  :log-level :info)              ; log level for vom

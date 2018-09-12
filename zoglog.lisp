@@ -104,7 +104,8 @@
   (setf *database-name* (getf config :database-name))
   (setf *database-user* (getf config :database-user))
   (setf *database-host* (getf config :database-host))
-  (setf *database-password* (getf config :database-password)))
+  (setf *database-password* (getf config :database-password))
+  (setf *database-port* (getf config :database-port 5432)))
 
 ;; Start app
 (defun start (&optional conf-file)
