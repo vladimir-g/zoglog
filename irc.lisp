@@ -2,7 +2,7 @@
 
 (in-package #:zoglog)
 
-(defparameter *reconnect-timeout* 10)
+(defparameter *reconnect-timeout* 20)
 (defvar *read-timeout* 360)
 
 (defun make-message (prefix command args raw &optional channels server nick)
@@ -162,7 +162,8 @@
      (format ,stream
              (concatenate 'string ,tpl "~C~C")
              ,@args #\return #\linefeed)
-     (finish-output ,stream)))
+     (finish-output ,stream)
+     (vom:debug1 (concatenate 'string "Sent cmd: " ,tpl) ,@args)))
 
 (defun set-nick (stream nick)
   "Set user name for server."
@@ -207,10 +208,11 @@
 ;; Main log loop
 
 (defun log-server (&key server port nick channels username password
-                     extra-commands encoding (socket-timeout 180) tls)
+                     extra-commands encoding (socket-timeout 180) tls (options '()))
   "Run logging loop for specified server."
   (update-db-channels server channels)
   (loop for channel in channels do (load-statistics server channel))
+  (defun has-option (option) (member option options))
   (handler-bind ((nickname-already-in-use #'restart-change-nick)
                  (logger-was-kicked #'restart-kicked)
                  (message-parse-error #'restart-message-parse-error)
@@ -223,6 +225,12 @@
                  (auth-allow #'auth-is-allowed)
                  (sasl-success #'auth-is-successful)
                  (sasl-failed #'auth-is-failed)
+                 ;; Connection
+                 (motd-received #'(lambda (c)
+                                    (declare (ignore c))
+                                    (unless (or (and username password) ; in-sasl
+                                                (has-option 'send-on-connect))
+                                      (invoke-restart 'connect-event))))
                  ;; Common error
                  (error #'restart-unknown-error))
     (loop do
@@ -237,14 +245,20 @@
                (set-read-timeout (usocket:socket socket)
                                  (get-real-stream stream tls)
                                  *read-timeout*)
+               (defun join () (join-channels stream channels))
+               (defun extra ()
+                 (loop for cmd in extra-commands
+                       do (send-cmd stream cmd)))
                (unwind-protect
                     (progn
                       (when in-sasl
                         (send-cmd stream "CAP REQ :sasl"))
                       (set-nick stream nick)
-                      (loop for cmd in extra-commands
-                         do (send-cmd stream cmd))
-                      (unless in-sasl (join-channels stream channels))
+                      (when (and (not in-sasl)
+                                 (has-option 'send-on-connect))
+                        (vom:debug1 "Joining on connect")
+                        (extra)
+                        (join))
                       ;; Main loop
                       (do ((line
                             (read-line stream nil)
@@ -270,11 +284,16 @@
                                 (progn
                                   (setf in-sasl nil)
                                   (send-cmd stream "CAP END")
-                                  (join-channels stream channels)))
+                                  (invoke-restart 'connect-event)))
                               (authenticate-sasl ()
                                 (send-cmd stream "AUTHENTICATE ~a"
                                           (sasl-credentials username
                                                             password)))
+                              (connect-event ()
+                                (progn
+                                  (vom:debug1 "Connected")
+                                  (extra)
+                                  (join)))
                               (join-after-kick (channel)
                                 (progn
                                   (sleep 3)
@@ -283,7 +302,7 @@
                                 (progn
                                   (setf nick (concatenate 'string nick "-"))
                                   (set-nick stream nick)
-                                  (join-channels stream channels)))))))
+                                  (join)))))))
                  (close stream)
                  (usocket:socket-close socket))
                ;; Do-loop ends when socket disconnected, reconnect after

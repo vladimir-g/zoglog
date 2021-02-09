@@ -195,6 +195,17 @@
          (is (eq code (zoglog::code msg)))
          (signals zoglog::sasl-failed (zoglog::process msg)))))
 
+(test numeric-motd-received
+  (loop for code in '(376 422) do
+       (let* ((line (format nil
+                            ":server.tld ~a ~a :MOTD received"
+                            code
+                            +logger-nick+))
+              (msg (parse-message line)))
+         (is (eq 'zoglog::numeric-message (type-of msg)))
+         (is (eq code (zoglog::code msg)))
+         (signals zoglog::motd-received (zoglog::process msg)))))
+
 ;; ACTION message is really a PRIVMSG with custom args
 (test action
   (let* ((act (format nil "~CACTION suffers~:*~C" #\u001))

@@ -18,7 +18,10 @@
                   ;; Optional socket timeout, default 180 seconds
                   :socket-timeout 180
                   ;; Use tls or not, default nil
-                  :tls t)))
+                  :tls t
+                  ;; List of additional options for server
+                  ;; send-on-connect - send extra commands and joins without waiting the end of MOTD
+                  :options ())))
  ;; Socket read timeout
  :read-timeout 600
  ;; Hunchentoot listen port (optional)

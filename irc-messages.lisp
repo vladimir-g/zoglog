@@ -21,6 +21,8 @@
   ((text :initarg :text :reader text)
    (code :initarg :code :reader code)))
 
+(define-condition motd-received (condition) ())
+
 ;; Signals for CAP/SASL
 
 (define-condition has-sasl (condition) ())
@@ -190,6 +192,9 @@
           ((or (= code 903)             ;RPL_SASLSUCCESS
                (= code 907))            ;ERR_SASLALREADY
            (signal 'sasl-success))
+          ((or (= code 376)             ;RPL_ENDOFMOTD
+               (= code 422))            ;ERR_NOMOTD
+           (signal 'motd-received))
           ((or (= code 902)             ;ERR_NICKLOCKED
                (= code 904)             ;ERR_SASLFAIL
                (= code 905))            ;ERR_SASLTOOLONG
