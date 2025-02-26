@@ -176,7 +176,7 @@
         (older-id nil)
         (newer-id nil)
         (messages-list))
-    (when (> length 1)
+    (when (>= length 1)
       (unless first-id
         (setf first-id (id (first messages))))
       (cond ((and (or from-id to-id)
